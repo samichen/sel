@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>除錯溫度計｜我的情緒歷程紀錄</title>
+<meta name="description" content="陳世銘的教育AI">
+<meta name="keywords" content="除錯溫度計,情緒溫度計,社會情緒學習,SEL,自我覺察,情緒調節,程式除錯,自主學習,課堂互動,學習單">
+<meta name="author" content="陳世銘">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🌡️</text></svg>">
+<style>
+:root{
+  --cream:#FFF6EC; --card:#FFFDF9;
+  --ink:#5A4A42; --ink2:#8C7A70; --line:#F2E1D1;
+  --brand:#E9A178; --brand-d:#D4835C;
+  --shadow:0 12px 28px rgba(198,152,120,.18);
+  --shadow-s:0 4px 12px rgba(198,152,120,.14);
+  --r:22px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color:var(--ink); line-height:1.7;
+  background:
+    radial-gradient(900px 460px at 15% -8%, #FFFDF7 0%, rgba(255,253,247,0) 70%),
+    radial-gradient(760px 420px at 92% 4%, #FFEFE2 0%, rgba(255,239,226,0) 70%),
+    var(--cream);
+  min-height:100vh; overflow-x:hidden;
+}
+.sky{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(2px);opacity:.5;animation:float 14s ease-in-out infinite}
+.blob:nth-child(1){width:120px;height:120px;background:#FFE3CE;left:4%;top:12%}
+.blob:nth-child(2){width:80px;height:80px;background:#DCEFE3;right:7%;top:26%;animation-delay:-4s}
+.blob:nth-child(3){width:150px;height:150px;background:#FDF0D2;left:12%;bottom:8%;animation-delay:-8s}
+.blob:nth-child(4){width:70px;height:70px;background:#FBDCD5;right:14%;bottom:16%;animation-delay:-2s}
+@keyframes float{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-22px) translateX(10px)}}
+
+.wrap{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:22px 16px 30px}
+
+.hero{text-align:center;margin:6px 0 18px}
+.hero h1{font-size:clamp(26px,5.2vw,40px);margin:0;letter-spacing:1px;display:inline-flex;align-items:center;gap:10px}
+.hero h1 .ico{display:inline-block;animation:wiggle 3.4s ease-in-out infinite;transform-origin:50% 80%}
+@keyframes wiggle{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.hero p{margin:8px auto 0;color:var(--ink2);font-size:15px;max-width:34em}
+.ribbon{display:inline-block;margin-top:10px;padding:5px 16px;border-radius:999px;background:#FFF0E1;
+  border:2px dashed #F0C7A6;color:var(--brand-d);font-size:13px;font-weight:700}
+
+.card{background:var(--card);border:2px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:24px 22px}
+.screen{display:none;animation:pop .45s cubic-bezier(.34,1.3,.5,1)}
+.screen.on{display:block}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+
+.field{margin-bottom:16px}
+.field label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+.field label small{font-weight:400;color:var(--ink2)}
+input[type=text],textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);padding:13px 15px;
+  border:2px solid var(--line);border-radius:16px;background:#FFFCF7;transition:border-color .2s, box-shadow .2s}
+input[type=text]:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 4px #FBE5D4}
+textarea{resize:vertical;min-height:96px;line-height:1.8}
+::placeholder{color:#C6B4A8}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+.btn{font:inherit;font-weight:800;font-size:16px;cursor:pointer;padding:13px 26px;border-radius:999px;
+  border:2px solid transparent;box-shadow:var(--shadow-s);
+  transition:transform .16s cubic-bezier(.34,1.4,.5,1), box-shadow .2s, background .2s}
+.btn:hover{transform:translateY(-2px) scale(1.03)}
+.btn:active{transform:translateY(1px) scale(.98)}
+.btn:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
+.btn-main{background:linear-gradient(160deg,#F0AE85,#E4906A);color:#fff}
+.btn-go{background:linear-gradient(160deg,#9FD4B7,#7CC3A2);color:#25543F}
+.btn-soft{background:#FFF1E4;color:var(--brand-d);border-color:#F5D3B9}
+.btn-ghost{background:transparent;color:var(--ink2);border-color:var(--line);box-shadow:none;font-weight:700;font-size:14px;padding:9px 18px}
+.btn-lg{width:100%;padding:16px;font-size:18px}
+.btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+
+.stage{display:grid;grid-template-columns:250px 1fr;gap:26px;align-items:start}
+.thermo-box{text-align:center;background:linear-gradient(180deg,#FFFBF4,#FFF3E6);border:2px solid var(--line);
+  border-radius:26px;padding:14px 6px 12px;position:relative;overflow:hidden}
+.reading{font-size:13px;color:var(--ink2);margin-top:2px}
+.reading b{font-size:30px;color:var(--brand-d);display:block;line-height:1.2;transition:color .5s}
+.mood-word{font-size:15px;font-weight:800;margin-top:2px}
+svg.thermo{display:block;margin:0 auto;width:100%;max-width:200px;height:auto}
+.liquid{transition:transform .95s cubic-bezier(.34,1.25,.45,1), fill .6s ease}
+.bub{opacity:0;transition:opacity .5s}
+.hot .bub{opacity:.5;animation:rise 2.1s ease-in infinite}
+.hot .bub.b2{animation-delay:.7s}
+.hot .bub.b3{animation-delay:1.4s}
+@keyframes rise{0%{transform:translateY(0);opacity:.6}100%{transform:translateY(-30px);opacity:0}}
+.steam{opacity:0;transition:opacity .5s}
+.hot .steam{opacity:.7;animation:puff 2.6s ease-out infinite}
+.hot .steam.s2{animation-delay:.9s}
+@keyframes puff{0%{transform:translateY(4px) scale(.7);opacity:.7}100%{transform:translateY(-24px) scale(1.3);opacity:0}}
+.spark{opacity:0;transition:opacity .5s;transform-origin:center}
+.cool .spark{opacity:1;animation:tw 1.8s ease-in-out infinite}
+.cool .spark.k2{animation-delay:.6s}
+@keyframes tw{0%,100%{transform:scale(.55);opacity:.25}50%{transform:scale(1.15);opacity:1}}
+.bulbwrap{animation:breath 3.2s ease-in-out infinite;transform-origin:60px 258px}
+@keyframes breath{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+
+.round-tag{display:inline-flex;align-items:center;gap:8px;background:#FFF0E1;color:var(--brand-d);
+  font-weight:800;font-size:14px;padding:6px 16px;border-radius:999px;border:2px solid #F7DAC2}
+.ask{font-size:clamp(18px,3.2vw,22px);font-weight:800;margin:12px 0 4px}
+.ask small{display:block;font-size:13px;font-weight:400;color:var(--ink2);margin-top:2px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(106px,1fr));gap:10px;margin-top:14px}
+.opt{position:relative;cursor:pointer;border:3px solid transparent;border-radius:20px;padding:14px 8px 12px;
+  text-align:center;font:inherit;box-shadow:var(--shadow-s);
+  transition:transform .18s cubic-bezier(.34,1.5,.5,1), box-shadow .2s, border-color .2s}
+.opt:hover{transform:translateY(-5px) rotate(-1.2deg)}
+.opt:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
+.opt .em{display:block;font-size:34px;line-height:1.1;transition:transform .25s}
+.opt:hover .em{transform:scale(1.18) rotate(6deg)}
+.opt .lb{display:block;font-weight:800;font-size:15px;margin-top:4px}
+.opt .ds{display:block;font-size:11.5px;color:var(--ink2);margin-top:1px}
+.opt .kbd{position:absolute;top:5px;left:9px;font-size:10px;color:#B9A395;font-weight:700}
+.opt.sel{border-color:var(--ink);transform:translateY(-4px) scale(1.03)}
+.opt.sel::after{content:"✓";position:absolute;top:-9px;right:-7px;width:26px;height:26px;border-radius:50%;
+  background:var(--ink);color:#fff;font-size:14px;font-weight:800;display:grid;place-items:center;
+  animation:pop2 .35s cubic-bezier(.34,1.6,.5,1)}
+@keyframes pop2{from{transform:scale(0)}to{transform:scale(1)}}
+
+.tip{margin-top:16px;border-radius:20px;padding:14px 16px;border:2px solid var(--line);background:#FFF9EF;
+  display:none;animation:pop .4s cubic-bezier(.34,1.3,.5,1)}
+.tip.on{display:block}
+.tip .t{font-weight:800;font-size:15px;display:flex;align-items:center;gap:8px}
+.tip .b{font-size:14.5px;margin-top:4px}
+.tip .act{font-size:13.5px;margin-top:8px;background:#fff;border:2px dashed #EBD6C1;border-radius:14px;
+  padding:8px 12px;color:var(--brand-d);font-weight:700}
+
+.trail{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:16px;padding-top:14px;border-top:2px dashed var(--line)}
+.trail .lbl{font-size:12.5px;color:var(--ink2);font-weight:700;margin-right:2px}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:13px;
+  font-weight:700;border:2px solid rgba(0,0,0,.05);animation:pop2 .35s}
+.arrow{color:#D8C4B4;font-size:12px}
+.hr{border:0;border-top:2px dashed var(--line);margin:18px 0}
+
+.chips{display:flex;flex-wrap:wrap;gap:9px;margin:4px 0 16px}
+.chip{font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:9px 15px;border-radius:999px;
+  border:2px solid var(--line);background:#FFFCF7;color:var(--ink);transition:all .18s cubic-bezier(.34,1.5,.5,1)}
+.chip:hover{transform:translateY(-2px);border-color:#EFCDB0}
+.chip.on{background:#FFEBD9;border-color:var(--brand);color:var(--brand-d);transform:scale(1.04)}
+.chip:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+
+.done-h{text-align:center}
+.done-h .big{font-size:52px;display:block;animation:pop2 .6s cubic-bezier(.34,1.6,.5,1)}
+.done-h h2{margin:2px 0 4px;font-size:26px}
+.sum{background:#FFF9F0;border:2px solid var(--line);border-radius:20px;padding:14px 18px;margin-top:16px}
+.sum .li{display:flex;gap:10px;padding:8px 0;font-size:15px;align-items:flex-start}
+.sum .li+.li{border-top:1px dashed #F0DFCF}
+.sum .k{font-weight:800;white-space:nowrap;min-width:6.4em}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.stat{background:#FFF4E8;border:2px solid var(--line);border-radius:18px;padding:12px 6px;text-align:center}
+.stat b{display:block;font-size:24px;color:var(--brand-d);line-height:1.3}
+.stat span{font-size:12px;color:var(--ink2)}
+.chartbox{margin-top:16px;background:#FFFCF6;border:2px solid var(--line);border-radius:20px;padding:14px 8px 6px;overflow-x:auto;text-align:center}
+.chartbox svg{max-width:100%;height:auto}
+.chartbox h3{margin:0 0 4px;font-size:15px;text-align:center}
+.badge{display:block;text-align:center;background:#EAF6EF;border:2px solid #BFE3D0;color:#2F6B4F;font-weight:800;
+  font-size:15px;padding:12px 16px;border-radius:18px;margin-top:16px;line-height:1.8}
+
+dialog{border:none;border-radius:24px;padding:0;max-width:560px;width:92%;box-shadow:0 24px 60px rgba(120,80,50,.3)}
+dialog::backdrop{background:rgba(90,74,66,.4)}
+.dlg{padding:22px;background:var(--card)}
+.dlg h3{margin:0 0 6px;font-size:19px}
+.hist{max-height:44vh;overflow:auto;margin:10px 0}
+.hitem{border:2px solid var(--line);border-radius:16px;padding:10px 13px;margin-bottom:9px;font-size:13.5px;background:#FFFCF7}
+.hitem .d{color:var(--ink2);font-size:12px}
+.empty{text-align:center;color:var(--ink2);padding:22px 0;font-size:14px}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,26px);z-index:60;background:var(--ink);
+  color:#fff;padding:11px 22px;border-radius:999px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;
+  transition:all .35s cubic-bezier(.34,1.4,.5,1)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+
+.foot{text-align:center; font-size:11px; color:#555; padding:16px 0;}
+.foot a{color:#555}
+
+@media (max-width:760px){
+  .stage{grid-template-columns:1fr;gap:16px}
+  .thermo-box{display:flex;align-items:center;gap:10px;padding:10px;text-align:left}
+  svg.thermo{max-width:108px;flex:0 0 108px}
+  .row2{grid-template-columns:1fr}
+  .card{padding:18px 15px}
+  .opts{grid-template-columns:1fr;gap:8px}
+  .opt{display:flex;align-items:center;gap:12px;text-align:left;padding:10px 40px 10px 32px}
+  .opt .em{font-size:30px;flex:0 0 auto}
+  .opt .lb{margin-top:0;font-size:16px}
+  .opt .ds{margin-top:0}
+  .opt .kbd{top:50%;left:12px;transform:translateY(-50%);font-size:12px}
+  .opt.sel::after{top:50%;right:10px;transform:translateY(-50%);animation:none}
+  .opt:hover{transform:translateY(-2px)}
+  .stats{grid-template-columns:1fr;gap:8px}
+  .stat{display:flex;align-items:center;justify-content:center;gap:8px}
+  .stat b{font-size:20px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
+@media print{
+  .sky,.btns,canvas,#hintbar{display:none!important}
+  body{background:#fff}.card{box-shadow:none;border-color:#ddd}
+}
+</style>
+</head>
+<body>
+<div class="sky"><i class="blob"></i><i class="blob"></i><i class="blob"></i><i class="blob"></i></div>
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast"></div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1><span class="ico">🌡️</span>除錯溫度計</h1>
+    <p>卡關的時候，先量一下自己的「心情溫度」。看得見情緒，才調得動情緒。</p>
+    <div class="ribbon">😌 平靜 → 🤔 卡卡 → 🌋 快爆炸，都可以被記錄</div>
+  </div>
+
+  <!-- ===== 1 開始 ===== -->
+  <section id="s-start" class="screen on">
+    <div class="card">
+      <div class="row2">
+        <div class="field">
+          <label for="f-name">你的名字 <small>（暱稱也可以）</small></label>
+          <input type="text" id="f-name" placeholder="例如：小晴" autocomplete="off" maxlength="20">
+        </div>
+        <div class="field">
+          <label for="f-class">班級座號 <small>（可不填）</small></label>
+          <input type="text" id="f-class" placeholder="例如：五年三班 12 號" autocomplete="off" maxlength="24">
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-task">今天在挑戰什麼？ <small>（可不填）</small></label>
+        <input type="text" id="f-task" placeholder="例如：讓小車走出迷宮、修好一直跳紅字的程式" autocomplete="off" maxlength="60">
+      </div>
+      <hr class="hr">
+      <p style="font-size:14.5px;color:var(--ink2);margin:0 0 16px;text-align:center">
+        接下來每卡關一次，就回來量一次溫度 🌡️<br>
+        <span style="font-size:13px">沒有標準答案，誠實就是最好的答案。</span>
+      </p>
+      <button class="btn btn-main btn-lg" id="btn-start">開始量測我的心情溫度 →</button>
+      <div class="btns" style="margin-top:14px">
+        <button class="btn btn-ghost" id="btn-hist">📚 看看我以前的紀錄</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 2 量測 ===== -->
+  <section id="s-track" class="screen">
+    <div class="card">
+      <div class="stage">
+
+        <div class="thermo-box" id="thermo-box">
+          <svg class="thermo" id="thermo" viewBox="0 0 150 310" role="img" aria-labelledby="thermo-title">
+            <title id="thermo-title">心情溫度計</title>
+            <defs>
+              <clipPath id="clipTube">
+                <rect x="44" y="22" width="32" height="212" rx="16"></rect>
+                <circle cx="60" cy="258" r="37"></circle>
+              </clipPath>
+            </defs>
+
+            <!-- 玻璃管 -->
+            <rect x="44" y="22" width="32" height="212" rx="16" fill="#FFFFFF" stroke="#E8D5C4" stroke-width="3"></rect>
+            <circle cx="60" cy="258" r="37" fill="#FFFFFF" stroke="#E8D5C4" stroke-width="3"></circle>
+
+            <!-- 液柱 -->
+            <g clip-path="url(#clipTube)">
+              <rect class="liquid" id="liquid" x="38" y="0" width="44" height="320" fill="#A8D5BA" transform="translate(0,222)"></rect>
+              <circle class="bub b1" cx="52" cy="272" r="3.4" fill="#fff"></circle>
+              <circle class="bub b2" cx="66" cy="278" r="2.6" fill="#fff"></circle>
+              <circle class="bub b3" cx="59" cy="266" r="2" fill="#fff"></circle>
+            </g>
+
+            <!-- 高光 -->
+            <rect x="50" y="34" width="7" height="188" rx="4" fill="#fff" opacity=".55"></rect>
+
+            <!-- 蒸氣 / 亮晶晶 -->
+            <ellipse class="steam s1" cx="52" cy="14" rx="6" ry="4" fill="#E9C7B6"></ellipse>
+            <ellipse class="steam s2" cx="70" cy="12" rx="5" ry="3.5" fill="#E9C7B6"></ellipse>
+            <path class="spark k1" d="M104 60 l3.2 7.4 7.4 3.2 -7.4 3.2 -3.2 7.4 -3.2 -7.4 -7.4 -3.2 7.4 -3.2z" fill="#F6D77E"></path>
+            <path class="spark k2" d="M20 96 l2.4 5.6 5.6 2.4 -5.6 2.4 -2.4 5.6 -2.4 -5.6 -5.6 -2.4 5.6 -2.4z" fill="#9FD8BC"></path>
+
+            <!-- 刻度 -->
+            <g id="ticks" stroke="#DFC9B6" stroke-width="2.4" stroke-linecap="round"></g>
+            <g id="ticklabels" font-size="13" text-anchor="start"></g>
+
+            <!-- 臉 -->
+            <g class="bulbwrap">
+              <g class="face" id="face" fill="none" stroke="#5A4A42" stroke-width="3.4" stroke-linecap="round">
+                <circle cx="48" cy="250" r="3.4" fill="#5A4A42" stroke="none" id="eyeL"></circle>
+                <circle cx="72" cy="250" r="3.4" fill="#5A4A42" stroke="none" id="eyeR"></circle>
+                <path id="mouth" d="M48 268 Q60 279 72 268"></path>
+                <g id="brows" opacity="0">
+                  <path d="M41 240 L54 245"></path>
+                  <path d="M79 240 L66 245"></path>
+                </g>
+              </g>
+              <ellipse cx="38" cy="262" rx="6" ry="4" fill="#F3B3A6" opacity=".55"></ellipse>
+              <ellipse cx="82" cy="262" rx="6" ry="4" fill="#F3B3A6" opacity=".55"></ellipse>
+            </g>
+          </svg>
+
+          <div class="reading">
+            <b id="temp-num">32°</b>
+            <div class="mood-word" id="mood-word">還算平靜 😌</div>
+            目前的心情溫度
+          </div>
+        </div>
+
+        <div>
+          <span class="round-tag">🌡️ 第 <span id="round-no">1</span> 次量測</span>
+          <div class="ask" id="ask">現在，你的心情大概幾度？
+            <small>用手點一下最接近的那一格，沒有對錯。</small>
+          </div>
+          <div class="opts" id="opts" role="group" aria-label="心情溫度選項"></div>
+
+          <div class="tip" id="tip">
+            <div class="t"><span id="tip-ico">💡</span><span id="tip-title"></span></div>
+            <div class="b" id="tip-body"></div>
+            <div class="act" id="tip-act"></div>
+          </div>
+
+          <div class="btns" id="nav" style="margin-top:18px;display:none">
+            <button class="btn btn-soft" id="btn-next">再試一下，繼續除錯 🔁</button>
+            <button class="btn btn-go" id="btn-end">我調適好了，結束 ✨</button>
+          </div>
+
+          <div class="trail" id="trail" style="display:none"></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 3 調節策略 ===== -->
+  <section id="s-finish" class="screen">
+    <div class="card">
+      <div class="done-h">
+        <span class="big">🎉</span>
+        <h2>恭喜你完成挑戰！</h2>
+        <p style="color:var(--ink2);margin:0;font-size:15px">最後一個問題，也是最重要的一題──</p>
+      </div>
+      <hr class="hr">
+      <div class="field">
+        <label>你今天用了哪些「調節策略」讓自己撐過難關？ <small>（可複選）</small></label>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="field">
+        <label for="f-strategy">再用自己的話說說看 <small>（一兩句就夠了）</small></label>
+        <textarea id="f-strategy" placeholder="例如：我先深呼吸三次，然後把程式一行一行念出來，才發現少打了一個括號。"></textarea>
+      </div>
+      <button class="btn btn-go btn-lg" id="btn-submit">送出我的歷程 📮</button>
+      <div class="btns" style="margin-top:12px">
+        <button class="btn btn-ghost" id="btn-back">← 回去再量一次</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 4 結果 ===== -->
+  <section id="s-result" class="screen">
+    <div class="card">
+      <div class="done-h">
+        <span class="big">✅</span>
+        <h2>紀錄成功！</h2>
+        <p style="color:var(--ink2);margin:0;font-size:15px" id="result-sub">你把今天的自己，好好地記下來了。</p>
+      </div>
+
+      <div class="sum" id="sum"></div>
+      <div class="stats" id="stats"></div>
+
+      <div class="chartbox">
+        <h3>📈 我的情緒溫度曲線</h3>
+        <div id="chart"></div>
+      </div>
+
+      <div class="badge" id="badge"></div>
+
+      <div class="btns" style="margin-top:20px">
+        <button class="btn btn-soft" id="btn-copy">📋 複製紀錄</button>
+        <button class="btn btn-soft" id="btn-dl">💾 下載存檔</button>
+        <button class="btn btn-soft" id="btn-print">🖨️ 列印</button>
+        <button class="btn btn-main" id="btn-again">🔄 再量一次</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    © 2026 Dr.SaMi <a href="https://sami.nibar.net" target="SaMi" style="color:#555;">陳世銘</a>（samichen@gmail.com）
+  </div>
+</div>
+
+<dialog id="dlg-hist">
+  <div class="dlg">
+    <h3>📚 我的溫度紀錄簿</h3>
+    <p style="font-size:13px;color:var(--ink2);margin:0">只存在這台裝置的瀏覽器裡，不會上傳。</p>
+    <div class="hist" id="hist-list"></div>
+    <div class="btns">
+      <button class="btn btn-soft" id="btn-csv">⬇️ 匯出 CSV</button>
+      <button class="btn btn-ghost" id="btn-clear">🗑️ 清空紀錄</button>
+      <button class="btn btn-main" id="btn-close">關閉</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+/* ===================== 老師可調整的設定 ===================== */
+const CONFIG = {
+  // 若要自動回收全班資料：把 Google Apps Script 網頁應用程式網址貼在這裡，例如
+  // ENDPOINT: "https://script.google.com/macros/s/AKfycbx.../exec"
+  // 留空則資料只保存在學生自己的瀏覽器（可複製、下載、列印）。
+  ENDPOINT: "",
+  MAX_ROUNDS: 12
+};
+
+/* ===================== 溫度等級 ===================== */
+const LEVELS = [
+  { key:"cool",  emoji:"😄", label:"超順暢", desc:"寫得很順手", temp:8,  color:"#7FC8A9", soft:"#E4F4EC" },
+  { key:"calm",  emoji:"😌", label:"還算平靜", desc:"穩穩地前進", temp:32, color:"#A8D5BA", soft:"#EAF6EF" },
+  { key:"stuck", emoji:"🤔", label:"有點卡卡", desc:"卡住但撐得住", temp:56, color:"#F3C969", soft:"#FDF3DC" },
+  { key:"upset", emoji:"😣", label:"很煩躁", desc:"越試越焦躁", temp:78, color:"#F09A5B", soft:"#FDEBDB" },
+  { key:"boom",  emoji:"🌋", label:"快爆炸", desc:"火山要噴發", temp:96, color:"#E27D68", soft:"#FBE3DE" }
+];
+
+const MOUTHS = [
+  "M46 266 Q60 284 74 266",
+  "M48 268 Q60 279 72 268",
+  "M47 272 Q53 266 60 272 Q67 278 73 272",
+  "M47 277 Q60 265 73 277",
+  "M47 267 Q60 261 73 267 Q60 288 47 267"
+];
+
+const TIPS = [
+  { ico:"🌟", title:"這個狀態很珍貴！",
+    body:"順暢的時候最容易忘記自己做對了什麼。趁現在把「有效的方法」記下來，下次卡住時可以救自己一命。",
+    acts:["把剛剛成功的那一步寫成一句話","幫旁邊的同學看一下他卡在哪","先存檔，給自己一個讚 👍"] },
+  { ico:"🍃", title:"穩住了，很好。",
+    body:"平靜不是沒有問題，而是問題還在你能處理的範圍內。維持這個節奏，一次只前進一小步。",
+    acts:["先確認一次：我現在到底要做到什麼？","把下一步拆成 3 分鐘就能做完的小事","做完一小段就存檔一次"] },
+  { ico:"🧩", title:"卡住是正常的，真的。",
+    body:"程式不會因為你比較笨才出錯，它只是還沒被讀懂。把大問題縮小，答案通常就會自己浮出來。",
+    acts:["找出「哪一行開始不對」，先縮小範圍","把錯誤訊息完整念出來一次","印出變數看看，它真的是你想的那樣嗎？"] },
+  { ico:"💨", title:"先把手離開鍵盤 30 秒。",
+    body:"煩躁的時候，大腦會把「錯誤」放大成「我不會」。其實你只是需要換氣，錯誤訊息會乖乖等你回來。",
+    acts:["深呼吸三次：吸 4 秒、停 2 秒、吐 6 秒","起來喝口水，看看窗外五秒","換個方法試試：問同學、查資料都算高手行為"] },
+  { ico:"🌋", title:"火山警報！先照顧自己。",
+    body:"現在最該除錯的不是程式，是你的情緒。你不是不會，你只是累了。休息不是放棄，是策略。",
+    acts:["站起來走動 2 分鐘，離開螢幕","跟自己說一次：「我可以慢慢來。」","舉手告訴老師或同學：我卡住了，需要幫忙"] }
+];
+
+const STRATEGY_CHIPS = [
+  "深呼吸三次 🌬️","起來走一走 🚶","喝口水 💧","休息兩分鐘 ⏸️",
+  "把問題拆小 🧩","重新讀錯誤訊息 🔍","印出變數檢查 🖨️","一行一行念出來 🗣️",
+  "問同學 🙋","問老師 🧑‍🏫","查資料／找範例 📖","換個方法試試 🔄",
+  "跟自己說我可以 💪","先存檔再繼續 💾"
+];
+
+/* ===================== 狀態 ===================== */
+const S = { name:"", klass:"", task:"", rounds:[], picked:null, chips:new Set() };
+const KEY_HIST = "sami-thermo-history-v1";
+const KEY_DRAFT = "sami-thermo-draft-v1";
+let LAST_REC = null;
+
+/* 安全存取 localStorage：無痕模式、封鎖 Cookie、data: 網址時不會讓程式中斷 */
+const LS = {
+  ok: (function(){ try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); return true; }catch(e){ return false; } })(),
+  get: function(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set: function(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } },
+  del: function(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const $ = function(id){ return document.getElementById(id); };
+const esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){
+  return ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" })[c]; }); };
+
+/* ===================== 溫度計 ===================== */
+const Y_BOTTOM = 222, Y_TOP = 30;
+function yOf(t){ return Y_BOTTOM - (t / 100) * (Y_BOTTOM - Y_TOP); }
+
+(function buildTicks(){
+  const g = $("ticks"), gl = $("ticklabels");
+  LEVELS.forEach(function(L){
+    const y = yOf(L.temp);
+    const ln = document.createElementNS("http://www.w3.org/2000/svg","line");
+    ln.setAttribute("x1", 79); ln.setAttribute("x2", 89);
+    ln.setAttribute("y1", y);  ln.setAttribute("y2", y);
+    g.appendChild(ln);
+    const tx = document.createElementNS("http://www.w3.org/2000/svg","text");
+    tx.setAttribute("x", 94); tx.setAttribute("y", y + 5);
+    tx.textContent = L.emoji;
+    gl.appendChild(tx);
+  });
+})();
+
+function setThermo(idx){
+  const L = LEVELS[idx];
+  const liquid = $("liquid");
+  liquid.setAttribute("transform", "translate(0," + yOf(L.temp).toFixed(1) + ")");
+  liquid.setAttribute("fill", L.color);
+  $("mouth").setAttribute("d", MOUTHS[idx]);
+  $("brows").setAttribute("opacity", idx >= 3 ? "1" : "0");
+  const r = idx === 4 ? 4.4 : 3.4;
+  $("eyeL").setAttribute("r", r); $("eyeR").setAttribute("r", r);
+  const box = $("thermo-box");
+  box.classList.toggle("hot", idx >= 3);
+  box.classList.toggle("cool", idx <= 1);
+  $("temp-num").textContent = L.temp + "°";
+  $("temp-num").style.color = L.color;
+  $("mood-word").textContent = L.label + " " + L.emoji;
+}
+
+/* ===================== 選項 ===================== */
+(function buildOpts(){
+  const box = $("opts");
+  LEVELS.forEach(function(L, i){
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "opt"; b.dataset.i = i;
+    b.style.background = L.soft;
+    b.setAttribute("aria-pressed","false");
+    b.innerHTML = '<span class="kbd">' + (i+1) + '</span>' +
+      '<span class="em">' + L.emoji + '</span>' +
+      '<span class="txt"><span class="lb">' + L.label + '</span>' +
+      '<span class="ds">' + L.desc + '</span></span>';
+    b.addEventListener("click", function(){ pick(i); });
+    box.appendChild(b);
+  });
+})();
+
+function pick(i){
+  S.picked = i;
+  Array.prototype.forEach.call(document.querySelectorAll(".opt"), function(el, k){
+    el.classList.toggle("sel", k === i);
+    el.setAttribute("aria-pressed", k === i ? "true" : "false");
+  });
+  setThermo(i);
+  const T = TIPS[i];
+  $("tip-ico").textContent = T.ico;
+  $("tip-title").textContent = T.title;
+  $("tip-body").textContent = T.body;
+  $("tip-act").textContent = "🎯 現在可以試試：" + T.acts[Math.floor(Math.random() * T.acts.length)];
+  $("tip").classList.add("on");
+  $("nav").style.display = "flex";
+  $("btn-next").textContent = i >= 3 ? "先冷靜一下，等等再量 🔁" : "再試一下，繼續除錯 🔁";
+}
+
+function commitRound(){
+  if (S.picked === null) return false;
+  S.rounds.push({ i: S.picked, t: LEVELS[S.picked].temp, at: new Date().toISOString() });
+  renderTrail();
+  return true;
+}
+
+function renderTrail(){
+  const t = $("trail");
+  if (!S.rounds.length){ t.style.display = "none"; return; }
+  t.style.display = "flex";
+  let h = '<span class="lbl">已記錄：</span>';
+  S.rounds.forEach(function(r, i){
+    const L = LEVELS[r.i];
+    if (i) h += '<span class="arrow">➜</span>';
+    h += '<span class="pill" style="background:' + L.soft + '">' + L.emoji + ' ' + L.label + '</span>';
+  });
+  t.innerHTML = h;
+}
+
+const ASKS = ["過了一會兒，現在幾度了？","再量一次，溫度有變嗎？","剛剛那一步之後，心情如何？","誠實地問問自己：現在幾度？"];
+function resetPanel(){
+  S.picked = null;
+  Array.prototype.forEach.call(document.querySelectorAll(".opt"), function(el){
+    el.classList.remove("sel"); el.setAttribute("aria-pressed","false");
+  });
+  $("tip").classList.remove("on");
+  $("nav").style.display = "none";
+  const k = S.rounds.length;
+  $("round-no").textContent = k + 1;
+  $("ask").innerHTML = (k === 0 ? "現在，你的心情大概幾度？" : ASKS[(k - 1) % ASKS.length]) +
+    '<small>用手點一下最接近的那一格，沒有對錯。</small>';
+}
+
+function nextRound(){
+  if (!commitRound()) return;
+  if (S.rounds.length >= CONFIG.MAX_ROUNDS){ toast("量測次數已達上限，我們來收尾吧！"); return goFinish(); }
+  resetPanel();
+  $("opts").scrollIntoView({ behavior:"smooth", block:"center" });
+  saveDraft();
+}
+
+/* ===================== 畫面切換 ===================== */
+function show(id){
+  Array.prototype.forEach.call(document.querySelectorAll(".screen"), function(s){ s.classList.remove("on"); });
+  $(id).classList.add("on");
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+
+$("btn-start").addEventListener("click", function(){
+  const n = $("f-name").value.trim();
+  if (!n){ $("f-name").focus(); toast("先告訴我你的名字吧 😊"); return; }
+  S.name = n; S.klass = $("f-class").value.trim(); S.task = $("f-task").value.trim();
+  S.rounds = []; S.picked = null;
+  resetPanel();
+  renderTrail();
+  setThermo(1);
+  show("s-track");
+});
+
+$("btn-next").addEventListener("click", nextRound);
+$("btn-end").addEventListener("click", function(){ if (commitRound()) goFinish(); });
+$("btn-back").addEventListener("click", function(){
+  resetPanel();
+  show("s-track");
+});
+
+function goFinish(){
+  const box = $("chips");
+  if (!box.children.length){
+    STRATEGY_CHIPS.forEach(function(txt){
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = txt;
+      b.setAttribute("aria-pressed","false");
+      b.addEventListener("click", function(){
+        const on = b.classList.toggle("on");
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+        if (on) S.chips.add(txt); else S.chips.delete(txt);
+      });
+      box.appendChild(b);
+    });
+  }
+  saveDraft();
+  show("s-finish");
+}
+
+/* ===================== 送出 ===================== */
+$("btn-submit").addEventListener("click", function(){
+  const free = $("f-strategy").value.trim();
+  if (!S.chips.size && !free){ $("f-strategy").focus(); toast("挑一個策略，或寫一句話就好 🌱"); return; }
+  const rec = buildRecord(free);
+  LAST_REC = rec;
+  saveHistory(rec);
+  sendRemote(rec);
+  renderResult(rec);
+  LS.del(KEY_DRAFT);
+  show("s-result");
+  confetti();
+});
+
+function buildRecord(free){
+  const strat = Array.from(S.chips);
+  return {
+    date: new Date().toLocaleString("zh-TW", { hour12:false }),
+    name: S.name, klass: S.klass, task: S.task,
+    path: S.rounds.map(function(r){ return LEVELS[r.i].label + " " + LEVELS[r.i].emoji; }),
+    temps: S.rounds.map(function(r){ return r.t; }),
+    idxs: S.rounds.map(function(r){ return r.i; }),
+    chips: strat,
+    strategy: free,
+    strategyAll: strat.concat(free ? [free] : []).join("；")
+  };
+}
+
+function sendRemote(rec){
+  if (!CONFIG.ENDPOINT) return;
+  try{
+    fetch(CONFIG.ENDPOINT, {
+      method:"POST", mode:"no-cors",
+      headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify(rec)
+    }).catch(function(){});
+  }catch(e){}
+}
+
+/* ===================== 結果畫面 ===================== */
+function renderResult(rec){
+  const first = rec.temps[0], last = rec.temps[rec.temps.length - 1];
+  const max = Math.max.apply(null, rec.temps);
+  const drop = first - last;
+
+  let sum = '<div class="li"><span class="k">👤 姓名</span><span>' + esc(rec.name) +
+            (rec.klass ? '（' + esc(rec.klass) + '）' : '') + '</span></div>';
+  if (rec.task) sum += '<div class="li"><span class="k">🎯 今日挑戰</span><span>' + esc(rec.task) + '</span></div>';
+  sum += '<div class="li"><span class="k">📈 情緒變化</span><span>' + rec.path.map(esc).join(' <span style="color:#D8C4B4">➜</span> ') + '</span></div>';
+  sum += '<div class="li"><span class="k">💡 調節策略</span><span>' +
+         (rec.chips.length ? rec.chips.map(esc).join("、") + (rec.strategy ? "<br>" : "") : "") +
+         (rec.strategy ? esc(rec.strategy) : "") + '</span></div>';
+  sum += '<div class="li"><span class="k">🕒 紀錄時間</span><span>' + esc(rec.date) + '</span></div>';
+  $("sum").innerHTML = sum;
+
+  $("stats").innerHTML =
+    '<div class="stat"><b>' + rec.temps.length + ' 次</b><span>量測次數</span></div>' +
+    '<div class="stat"><b>' + max + '°</b><span>最高溫度</span></div>' +
+    '<div class="stat"><b>' + (drop > 0 ? "↓ " + drop + "°" : drop < 0 ? "↑ " + Math.abs(drop) + "°" : "持平") + '</b><span>整趟溫差</span></div>';
+
+  $("chart").innerHTML = chartSVG(rec);
+
+  let msg;
+  if (drop >= 40)      msg = "🏅 <b>降溫高手！</b><br>你從 " + first + "° 一路降到 " + last + "°，這不是運氣，是你真的用了方法。";
+  else if (drop > 0)   msg = "🌱 <b>你把自己拉回來了。</b><br>溫度降了 " + drop + "°，願意調整的人，下次會更快找到出口。";
+  else if (max >= 78)  msg = "🤍 <b>今天有點辛苦，辛苦你了。</b><br>撐到最後、還願意誠實記錄，這件事本身就很了不起。";
+  else if (max <= 32)  msg = "☀️ <b>今天狀態很穩！</b><br>記得把好用的方法留下來，那是你以後的祕密武器。";
+  else                 msg = "💪 <b>卡關，是學習正在發生的聲音。</b><br>你已經比開始前更了解自己了。";
+  $("badge").innerHTML = msg;
+  $("result-sub").textContent = rec.name + "，你把今天的自己好好地記下來了。";
+}
+
+function chartSVG(rec){
+  const n = rec.temps.length;
+  const stepX = 84, padL = 74, padR = 40;
+  const W = Math.max(440, padL + padR + Math.max(1, n - 1) * stepX);
+  const H = 202, top = 54, bot = 156;
+  const X = function(i){ return n === 1 ? W / 2 : padL + i * (W - padL - padR) / (n - 1); };
+  const Y = function(t){ return bot - (t / 100) * (bot - top); };
+
+  let g = "";
+  [0, 50, 100].forEach(function(v){
+    g += '<line x1="' + (padL - 26) + '" y1="' + Y(v) + '" x2="' + (W - 10) + '" y2="' + Y(v) +
+         '" stroke="#F0DFCF" stroke-width="2" stroke-dasharray="5 6"></line>' +
+         '<text x="' + (padL - 32) + '" y="' + (Y(v) + 4) + '" font-size="11.5" fill="#B9A395" text-anchor="end">' + v + '°</text>';
+  });
+
+  let line = "";
+  for (let i = 0; i < n; i++){
+    const x = X(i), y = Y(rec.temps[i]);
+    if (!i) line += "M" + x + " " + y;
+    else {
+      const px = X(i - 1), py = Y(rec.temps[i - 1]), mx = (px + x) / 2;
+      line += " C" + mx + " " + py + " " + mx + " " + y + " " + x + " " + y;
+    }
+  }
+  const area = line + " L" + X(n - 1) + " " + bot + " L" + X(0) + " " + bot + " Z";
+
+  let dots = "";
+  for (let i = 0; i < n; i++){
+    const L = LEVELS[rec.idxs[i]], x = X(i), y = Y(rec.temps[i]);
+    dots += '<circle cx="' + x + '" cy="' + y + '" r="9" fill="#FFFCF6" stroke="' + L.color + '" stroke-width="4"></circle>' +
+            '<text x="' + x + '" y="' + (y - 18) + '" font-size="20" text-anchor="middle">' + L.emoji + '</text>' +
+            '<text x="' + x + '" y="' + (bot + 22) + '" font-size="11.5" fill="#8C7A70" text-anchor="middle">第 ' + (i + 1) + ' 次</text>';
+  }
+
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="情緒溫度曲線">' +
+    '<defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0%" stop-color="#F3C969" stop-opacity=".45"></stop>' +
+    '<stop offset="100%" stop-color="#A8D5BA" stop-opacity=".10"></stop></linearGradient></defs>' +
+    g + (n > 1 ? '<path d="' + area + '" fill="url(#ag)"></path>' : '') +
+    '<path d="' + line + '" fill="none" stroke="#E9A178" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>' +
+    dots + '</svg>';
+}
+
+/* ===================== 輸出 ===================== */
+function recText(rec){
+  return "【除錯溫度計 · 我的情緒歷程】\n" +
+    "姓名：" + rec.name + (rec.klass ? "（" + rec.klass + "）" : "") + "\n" +
+    (rec.task ? "今日挑戰：" + rec.task + "\n" : "") +
+    "情緒變化：" + rec.path.join(" → ") + "\n" +
+    "溫度數值：" + rec.temps.join("° → ") + "°\n" +
+    "調節策略：" + (rec.strategyAll || "（未填）") + "\n" +
+    "紀錄時間：" + rec.date + "\n";
+}
+
+$("btn-copy").addEventListener("click", function(){
+  const t = recText(lastRecord());
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ toast("已複製，可以貼到作業區囉 📋"); },
+                                          function(){ fallbackCopy(t); });
+  } else fallbackCopy(t);
+});
+function fallbackCopy(t){
+  const ta = document.createElement("textarea");
+  ta.value = t; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); toast("已複製 📋"); }catch(e){ toast("請長按選取複製"); }
+  document.body.removeChild(ta);
+}
+$("btn-dl").addEventListener("click", function(){
+  const rec = lastRecord();
+  download((rec.name || "除錯溫度計") + "_情緒歷程.txt", recText(rec), "text/plain;charset=utf-8");
+});
+$("btn-print").addEventListener("click", function(){ window.print(); });
+$("btn-again").addEventListener("click", function(){
+  S.rounds = []; S.chips = new Set();
+  $("f-strategy").value = "";
+  Array.prototype.forEach.call(document.querySelectorAll(".chip"), function(c){
+    c.classList.remove("on"); c.setAttribute("aria-pressed","false");
+  });
+  resetPanel(); renderTrail(); setThermo(1);
+  show("s-track");
+});
+
+function download(fn, text, mime){
+  const blob = new Blob(["﻿" + text], { type: mime });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = fn;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* ===================== 本機紀錄 ===================== */
+function readHist(){ try{ return JSON.parse(LS.get(KEY_HIST) || "[]"); }catch(e){ return []; } }
+function saveHistory(rec){
+  const h = readHist(); h.unshift(rec);
+  LS.set(KEY_HIST, JSON.stringify(h.slice(0, 50)));
+}
+function lastRecord(){ return LAST_REC || readHist()[0] || buildRecord($("f-strategy").value.trim()); }
+function saveDraft(){
+  LS.set(KEY_DRAFT, JSON.stringify({ name:S.name, klass:S.klass, task:S.task, rounds:S.rounds }));
+}
+
+$("btn-hist").addEventListener("click", function(){
+  const h = readHist(), box = $("hist-list");
+  if (!LS.ok){
+    box.innerHTML = '<div class="empty">這台裝置目前不能保存紀錄<br>（可能是無痕視窗，或瀏覽器封鎖了網站資料）<br>沒關係，完成後仍可以複製或下載存檔 🌱</div>';
+    $("dlg-hist").showModal();
+    return;
+  }
+  box.innerHTML = h.length ? h.map(function(r){
+    return '<div class="hitem"><b>' + esc(r.name) + '</b>' + (r.task ? ' ・ ' + esc(r.task) : '') +
+      '<div class="d">' + esc(r.date) + '</div>' +
+      '<div>' + r.path.map(esc).join(" ➜ ") + '</div>' +
+      '<div style="color:#8C7A70">💡 ' + esc(r.strategyAll || "（未填）") + '</div></div>';
+  }).join("") : '<div class="empty">還沒有紀錄，完成一次量測就會出現在這裡 🌱</div>';
+  $("dlg-hist").showModal();
+});
+$("btn-close").addEventListener("click", function(){ $("dlg-hist").close(); });
+$("btn-clear").addEventListener("click", function(){
+  if (confirm("確定要清空這台裝置上的所有紀錄嗎？此動作無法復原。")){
+    LS.del(KEY_HIST);
+    $("hist-list").innerHTML = '<div class="empty">紀錄已清空 🌱</div>';
+    toast("已清空紀錄");
+  }
+});
+$("btn-csv").addEventListener("click", function(){
+  const h = readHist();
+  if (!h.length) return toast("目前沒有紀錄可以匯出");
+  const q = function(s){ return '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"'; };
+  const rows = [["時間","姓名","班級座號","今日挑戰","情緒歷程","溫度數值","最高溫","結束溫","調節策略"].map(q).join(",")];
+  h.forEach(function(r){
+    rows.push([r.date, r.name, r.klass, r.task, r.path.join(" → "), r.temps.join(" "),
+      Math.max.apply(null, r.temps), r.temps[r.temps.length - 1], r.strategyAll].map(q).join(","));
+  });
+  download("除錯溫度計_紀錄.csv", rows.join("\r\n"), "text/csv;charset=utf-8");
+});
+
+/* ===================== 小工具 ===================== */
+let toastT;
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove("on"); }, 2200);
+}
+
+document.addEventListener("keydown", function(e){
+  if (!$("s-track").classList.contains("on")) return;
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  if (e.key >= "1" && e.key <= "5") pick(parseInt(e.key, 10) - 1);
+  if (e.key === "Enter" && S.picked !== null) nextRound();
+});
+$("f-name").addEventListener("keydown", function(e){ if (e.key === "Enter") $("btn-start").click(); });
+
+/* 撒紙花 */
+function confetti(){
+  const cv = $("confetti"), ctx = cv.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+  cv.style.width = innerWidth + "px"; cv.style.height = innerHeight + "px";
+  ctx.scale(dpr, dpr);
+  const cols = ["#F3C969","#A8D5BA","#E9A178","#E27D68","#F6D77E","#9FD8BC","#FFD9C0"];
+  const bits = [];
+  for (let i = 0; i < 90; i++){
+    bits.push({ x: Math.random() * innerWidth, y: -20 - Math.random() * innerHeight * .5,
+      w: 6 + Math.random() * 8, h: 8 + Math.random() * 10,
+      c: cols[Math.floor(Math.random() * cols.length)],
+      vy: 1.6 + Math.random() * 2.6, vx: (Math.random() - .5) * 1.4,
+      a: Math.random() * Math.PI, va: (Math.random() - .5) * .22, r: Math.random() > .5 });
+  }
+  const t0 = Date.now();
+  (function frame(){
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    bits.forEach(function(b){
+      b.y += b.vy; b.x += b.vx + Math.sin(b.y / 34) * .7; b.a += b.va;
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.a); ctx.fillStyle = b.c;
+      if (b.r){ ctx.beginPath(); ctx.arc(0, 0, b.w / 2, 0, 6.29); ctx.fill(); }
+      else ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+      ctx.restore();
+    });
+    if (Date.now() - t0 < 3800) requestAnimationFrame(frame);
+    else ctx.clearRect(0, 0, innerWidth, innerHeight);
+  })();
+}
+
+setThermo(1);
+</script>
+</body>
+</html>
