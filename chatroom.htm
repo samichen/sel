@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="陳世銘的教育AI">
+    <meta name="keywords" content="陳世銘, SEL, AI, 數位學習, sami.nibar.net, ai.at.tw, samichen@gmail.com">
+    <meta name="author" content="陳世銘">
+    <title>換位思考聊天室 - SEL 互動遊戲</title>
+    <link rel="icon" href="https://ai.webideal.org/images/favicon.ico" type="image/x-icon" />
+    <!-- 使用 Tailwind CSS 加速 UI 開發 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 隱藏預設滾動條，保持平板 App 的視覺感 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        body { overscroll-behavior: none; touch-action: manipulation; }
+
+        /* 對話泡泡動畫 */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .msg-animate {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* 打字指示器動畫 */
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* 溫度計過渡動畫 */
+        #empathy-fill {
+            transition: width 0.5s ease-in-out, background-color 0.5s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center font-sans p-4 selection:bg-blue-200">
+
+    <!-- 模擬平板/手機的 App 容器 -->
+    <main class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[85vh] border-4 border-gray-200 relative">
+        
+        <!-- 頂部導航與同理心溫度計 -->
+        <header class="bg-blue-600 text-white p-4 shadow-md z-10">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-xl shadow-sm">
+                        🧑‍🎓
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight" id="chat-partner-name">小明</h1>
+                        <p class="text-xs text-blue-200" id="chat-scenario-title">情境：考試不理想</p>
+                    </div>
+                </div>
+                <div class="text-2xl" id="emotion-emoji">😐</div>
+            </div>
+            
+            <!-- 同理心溫度計 -->
+            <div class="mt-2">
+                <div class="flex justify-between text-xs mb-1 font-medium text-blue-100">
+                    <span>關係溫度</span>
+                    <span id="empathy-score-text">50 / 100</span>
+                </div>
+                <div class="w-full bg-blue-900 rounded-full h-2.5 overflow-hidden">
+                    <div id="empathy-fill" class="bg-yellow-400 h-2.5 rounded-full" style="width: 50%;"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 聊天訊息顯示區 -->
+        <div class="flex-1 overflow-y-auto p-4 bg-[#f4f5f7] flex flex-col gap-4" id="chat-history">
+            <!-- 訊息由 JS 動態生成 -->
+        </div>
+
+        <!-- 底部選項區 (Player Choices) -->
+        <footer class="bg-white border-t border-gray-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10 transition-transform duration-300 transform translate-y-0" id="choice-container">
+            <p class="text-sm text-gray-500 mb-3 text-center font-medium">請選擇你的回覆方式：</p>
+            <div class="flex flex-col gap-2" id="choice-buttons">
+                <!-- 按鈕由 JS 動態生成 -->
+            </div>
+        </footer>
+
+        <!-- 結算畫面 (預設隱藏) -->
+        <div id="result-screen" class="absolute inset-0 bg-white z-20 hidden flex-col items-center justify-center p-6 text-center">
+            <div class="text-6xl mb-4" id="result-icon">🌟</div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2" id="result-title">對話結束</h2>
+            <p class="text-gray-600 mb-6" id="result-desc">你展現了很好的同理心，讓對方感覺好多了！</p>
+            
+            <div class="bg-blue-50 p-4 rounded-xl w-full mb-6 text-left text-sm text-gray-700 border border-blue-100">
+                <h3 class="font-bold text-blue-800 mb-1">💡 SEL 小學堂：</h3>
+                <p id="result-lesson">同理心不是幫別人解決問題，而是讓對方知道「你並不孤單，我懂你的感受」。</p>
+            </div>
+
+            <button onclick="nextScenario()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-colors text-lg">
+                進入下一個情境
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        // 1. 遊戲資料 (對話樹腳本)
+        const scenarios = [
+            {
+                partner: "小明",
+                title: "考試考差了",
+                startEmotion: 50, // 初始同理心分數
+                dialogue: [
+                    {
+                        npc: "唉...我這次數學又考砸了，明明昨天讀到很晚，我覺得自己好笨。",
+                        choices: [
+                            { text: "我也考不好啊，這又沒什麼大不了的。", empathy: -10, reply: "可是我很在意啊...你根本不懂我的感覺。" },
+                            { text: "你應該是沒有抓到重點吧？下次補習班筆記借你看啦。", empathy: 0, reply: "謝謝你的好意，但我現在只是覺得很挫折..." },
+                            { text: "你昨天那麼努力準備，難怪現在會這麼難過。你還好嗎？", empathy: +20, reply: "嗯...真的很不甘心。謝謝你聽我說，心裡稍微好一點了。" }
+                        ]
+                    },
+                    {
+                        npc: "我都不敢把考卷拿給爸媽簽名了，他們一定會對我很失望。",
+                        choices: [
+                            { text: "伸頭一刀縮頭也是一刀，趕快拿去簽一簽啦。", empathy: -10, reply: "你說得倒輕鬆..." },
+                            { text: "別想太多啦，走，我們去打球放鬆一下！", empathy: 5, reply: "但我現在沒什麼心情去打球..." },
+                            { text: "這真的需要很大的勇氣耶。如果你需要，我可以陪你一起想怎麼跟他們說。", empathy: +20, reply: "真的嗎？太感謝你了，有你這個朋友真好。" }
+                        ]
+                    }
+                ],
+                lesson: "當朋友感到挫折時，急著給建議(借筆記)或轉移話題(去打球)不一定最好。先肯定他的情緒和努力，能讓他感受到被接納與理解。"
+            },
+            {
+                partner: "小美",
+                title: "分組報告的衝突",
+                startEmotion: 40, 
+                dialogue: [
+                    {
+                        npc: "你為什麼昨天沒有把你要做的簡報部分傳到群組？大家都等你一個人！",
+                        choices: [
+                            { text: "我昨天家裡有事啊！而且還有時間，你們急什麼？", empathy: -20, reply: "大家都做完了，你這種態度真的很不負責任！" },
+                            { text: "抱歉抱歉，我忘記了，我等一下馬上做。", empathy: +5, reply: "好啦...那你動作快一點，明天就要上台了。" },
+                            { text: "對不起！害你們擔心進度了。我昨天網路斷線，現在立刻補傳，可以嗎？", empathy: +20, reply: "原來是這樣...下次有狀況記得先在群組說一聲，我們真的很著急。" }
+                        ]
+                    }
+                ],
+                lesson: "面對他人的指責，防衛性地回嘴(你們急什麼)會破壞關係。真誠道歉並說明原因，同時承認對方的情緒(害你們擔心了)，是成熟的人際技巧。"
+            }
+        ];
+
+        // 2. 狀態管理
+        let currentScenarioIndex = 0;
+        let currentStepIndex = 0;
+        let empathyScore = 50;
+        
+        const chatHistory = document.getElementById('chat-history');
+        const choiceContainer = document.getElementById('choice-container');
+        const choiceButtons = document.getElementById('choice-buttons');
+        const empathyFill = document.getElementById('empathy-fill');
+        const empathyScoreText = document.getElementById('empathy-score-text');
+        const emotionEmoji = document.getElementById('emotion-emoji');
+
+        // 3. 核心邏輯函式
+
+        // 初始化情境
+        function loadScenario() {
+            if (currentScenarioIndex >= scenarios.length) {
+                showFinalEnd();
+                return;
+            }
+
+            const scenario = scenarios[currentScenarioIndex];
+            currentStepIndex = 0;
+            empathyScore = scenario.startEmotion;
+            
+            // 更新頂部 UI
+            document.getElementById('chat-partner-name').innerText = scenario.partner;
+            document.getElementById('chat-scenario-title').innerText = `情境：${scenario.title}`;
+            updateEmpathyMeter();
+
+            // 清空聊天室並隱藏結算
+            chatHistory.innerHTML = '';
+            document.getElementById('result-screen').classList.add('hidden');
+            
+            // 開始對話
+            playTurn();
+        }
+
+        // 執行對話回合
+        function playTurn() {
+            const scenario = scenarios[currentScenarioIndex];
+            
+            // 如果對話步驟走完，顯示該情境結算
+            if (currentStepIndex >= scenario.dialogue.length) {
+                setTimeout(() => showScenarioResult(scenario), 1000);
+                return;
+            }
+
+            const currentStep = scenario.dialogue[currentStepIndex];
+            choiceContainer.classList.add('translate-y-full'); // 隱藏選項區
+
+            // 顯示 NPC 正在輸入
+            showTypingIndicator(() => {
+                // 顯示 NPC 訊息
+                renderMessage('npc', currentStep.npc);
+                
+                // 準備玩家選項 (稍作延遲讓玩家閱讀)
+                setTimeout(() => {
+                    renderChoices(currentStep.choices);
+                    choiceContainer.classList.remove('translate-y-full'); // 滑出選項區
+                }, 1000);
+            });
+        }
+
+        // 渲染對話泡泡
+        function renderMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `max-w-[80%] rounded-2xl p-3 text-[15px] leading-relaxed msg-animate shadow-sm ${
+                sender === 'npc' 
+                ? 'bg-white text-gray-800 self-start rounded-tl-none border border-gray-100' 
+                : 'bg-blue-600 text-white self-end rounded-tr-none'
+            }`;
+            msgDiv.innerText = text;
+            chatHistory.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        // 打字指示器
+        function showTypingIndicator(callback) {
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = 'bg-white rounded-2xl p-3 px-4 self-start rounded-tl-none shadow-sm flex items-center gap-1 w-16 msg-animate border border-gray-100';
+            typingDiv.innerHTML = `
+                <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+                <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+                <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+            `;
+            chatHistory.appendChild(typingDiv);
+            scrollToBottom();
+
+            // 模擬思考延遲 1.5 秒
+            setTimeout(() => {
+                typingDiv.remove();
+                callback();
+            }, 1500);
+        }
+
+        // 渲染選項按鈕
+        function renderChoices(choices) {
+            choiceButtons.innerHTML = '';
+            // 每次隨機打亂選項順序，避免背下位置
+            const shuffledChoices = [...choices].sort(() => Math.random() - 0.5);
+
+            shuffledChoices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left bg-gray-50 hover:bg-blue-50 border border-gray-200 p-4 rounded-xl text-[15px] text-gray-800 transition-colors active:bg-blue-100 touch-manipulation shadow-sm';
+                btn.innerText = choice.text;
+                btn.onclick = () => handleChoice(choice);
+                choiceButtons.appendChild(btn);
+            });
+        }
+
+        // 處理玩家選擇
+        function handleChoice(choice) {
+            choiceContainer.classList.add('translate-y-full'); // 點擊後立刻隱藏選項
+            
+            // 顯示玩家訊息
+            renderMessage('player', choice.text);
+            
+            // 更新同理心分數
+            empathyScore += choice.empathy;
+            empathyScore = Math.max(0, Math.min(100, empathyScore)); // 限制在 0-100
+            updateEmpathyMeter();
+
+            // NPC 回應
+            showTypingIndicator(() => {
+                renderMessage('npc', choice.reply);
+                currentStepIndex++;
+                
+                // 繼續下一回合或結束
+                setTimeout(playTurn, 1500);
+            });
+        }
+
+        // 更新頂部同理心溫度計
+        function updateEmpathyMeter() {
+            empathyFill.style.width = `${empathyScore}%`;
+            empathyScoreText.innerText = `${empathyScore} / 100`;
+
+            // 根據分數改變顏色與表情
+            if (empathyScore >= 75) {
+                empathyFill.className = 'bg-green-400 h-2.5 rounded-full';
+                emotionEmoji.innerText = '😊';
+            } else if (empathyScore >= 40) {
+                empathyFill.className = 'bg-yellow-400 h-2.5 rounded-full';
+                emotionEmoji.innerText = '😐';
+            } else {
+                empathyFill.className = 'bg-red-400 h-2.5 rounded-full';
+                emotionEmoji.innerText = '😞';
+            }
+        }
+
+        function scrollToBottom() {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        // 顯示單一情境結算
+        function showScenarioResult(scenario) {
+            const screen = document.getElementById('result-screen');
+            const icon = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+            const lesson = document.getElementById('result-lesson');
+
+            screen.classList.remove('hidden');
+            screen.classList.add('flex');
+            
+            lesson.innerText = scenario.lesson;
+
+            if (empathyScore >= 75) {
+                icon.innerText = '💖';
+                title.innerText = '太棒了！';
+                title.className = 'text-2xl font-bold text-green-600 mb-2';
+                desc.innerText = `你展現了極佳的同理心，${scenario.partner} 覺得心裡溫暖多了。`;
+            } else if (empathyScore >= 40) {
+                icon.innerText = '🤝';
+                title.innerText = '還不錯喔！';
+                title.className = 'text-2xl font-bold text-yellow-600 mb-2';
+                desc.innerText = `你試著解決問題，但下次可以多關注一下 ${scenario.partner} 的情緒感受。`;
+            } else {
+                icon.innerText = '💔';
+                title.innerText = '關係降溫了...';
+                title.className = 'text-2xl font-bold text-red-600 mb-2';
+                desc.innerText = `你的回應讓 ${scenario.partner} 覺得被否定或忽視了，下次試著換個角度想想吧。`;
+            }
+        }
+
+        function nextScenario() {
+            currentScenarioIndex++;
+            loadScenario();
+        }
+
+        function showFinalEnd() {
+            const screen = document.getElementById('result-screen');
+            screen.innerHTML = `
+                <div class="text-6xl mb-4">🏆</div>
+                <h2 class="text-2xl font-bold text-blue-800 mb-2">聊天室體驗完成！</h2>
+                <p class="text-gray-600 mb-6">你已經練習了多種人際情境。記住，同理心是需要不斷練習的超能力喔！</p>
+                <button onclick="location.reload()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-colors text-lg">
+                    再玩一次
+                </button>
+            `;
+            screen.classList.remove('hidden');
+            screen.classList.add('flex');
+        }
+
+        // 啟動遊戲
+        window.onload = loadScenario;
+
+    </script>
+</body>
+</html>

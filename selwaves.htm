@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="陳世銘的教育AI">
+    <meta name="keywords" content="陳世銘, SEL, AI, 數位學習, sami.nibar.net, ai.at.tw, samichen@gmail.com">
+    <meta name="author" content="陳世銘">
+    <title>正念呼吸波浪 - 平板感測互動版</title>
+    <link rel="icon" href="https://ai.webideal.org/images/favicon.ico" type="image/x-icon" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 隱藏預設滾動條，確保平板全螢幕體驗 */
+        body { overscroll-behavior: none; touch-action: none; }
+        
+        /* 核心波浪/圓形動畫過渡 */
+        .breath-circle {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 50px rgba(255, 255, 255, 0.2), inset 0 0 50px rgba(255,255,255,0.5);
+        }
+
+        /* 背景漸變動畫 */
+        .bg-gradient-animate {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4, #10b981);
+            background-size: 300% 300%;
+            transition: background-position 2s ease;
+        }
+        
+        /* 狀態對應的背景位置 */
+        .bg-exhale { background-position: 0% 50%; }
+        .bg-inhale { background-position: 100% 50%; }
+
+        /* 水波紋擴散特效 */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            animation: ripple-anim 2s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes ripple-anim {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-animate bg-exhale min-h-screen flex flex-col items-center justify-between text-white font-sans overflow-hidden selection:bg-transparent">
+
+    <!-- 頂部資訊區 -->
+    <header class="w-full p-6 text-center z-10 relative">
+        <h1 class="text-3xl md:text-4xl font-bold mb-2 tracking-wide drop-shadow-md">🌊 正念呼吸波浪</h1>
+        <p class="text-lg md:text-xl opacity-90 drop-shadow-sm font-medium" id="instruction-text">
+            請將手指<span class="text-yellow-300 font-bold">長按</span>螢幕中央來吸氣
+        </p>
+    </header>
+
+    <!-- 中央互動區 -->
+    <main class="flex-1 w-full flex items-center justify-center relative z-0" id="interaction-area">
+        <!-- 呼吸波浪圓環 -->
+        <div id="breath-visualizer" class="breath-circle w-48 h-48 md:w-64 md:h-64 rounded-full bg-white bg-opacity-20 backdrop-blur-md flex items-center justify-center border-4 border-white border-opacity-40 cursor-pointer">
+            <span id="state-text" class="text-2xl md:text-3xl font-bold tracking-widest text-white drop-shadow-md">呼氣...</span>
+        </div>
+        
+        <!-- 感測器數據顯示 (預設隱藏，啟用腹式呼吸時顯示) -->
+        <div id="sensor-data-display" class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-30 rounded-xl p-3 text-sm hidden flex-col items-center">
+            <span class="text-yellow-200 mb-1">感測器已啟用 (請將平板放於腹部)</span>
+            <span>傾斜角度: <span id="tilt-value">0.0</span>°</span>
+        </div>
+    </main>
+
+    <!-- 底部控制區 -->
+    <footer class="w-full p-6 flex justify-center z-10">
+        <button id="btn-sensor-mode" class="bg-white text-blue-600 hover:bg-blue-50 font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform active:scale-95 flex items-center gap-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+            啟用腹式呼吸感測 (iPad)
+        </button>
+    </footer>
+
+    <script>
+        // DOM 元素選取
+        const body = document.body;
+        const interactionArea = document.getElementById('interaction-area');
+        const visualizer = document.getElementById('breath-visualizer');
+        const stateText = document.getElementById('state-text');
+        const instructionText = document.getElementById('instruction-text');
+        const btnSensorMode = document.getElementById('btn-sensor-mode');
+        const sensorDataDisplay = document.getElementById('sensor-data-display');
+        const tiltValueDisplay = document.getElementById('tilt-value');
+
+        // 系統狀態
+        let isSensorMode = false;
+        let isTouching = false;
+        let rippleInterval;
+
+        // ==========================================
+        // 模式 1：觸控互動邏輯 (Touch & Hold)
+        // ==========================================
+
+        function startInhale() {
+            if (isSensorMode) return; // 若啟用了感測器模式，則關閉觸控邏輯
+            
+            isTouching = true;
+            
+            // 視覺變化：吸氣（擴張）
+            visualizer.style.transform = 'scale(1.8)';
+            visualizer.style.backgroundColor = 'rgba(255, 255, 255, 0.4)';
+            stateText.innerText = '吸氣...';
+            instructionText.innerHTML = '保持按壓，感受氣息充滿胸腔';
+            
+            // 背景漸變至綠色系 (平靜)
+            body.classList.remove('bg-exhale');
+            body.classList.add('bg-inhale');
+
+            // 產生水波紋
+            createRipple();
+            rippleInterval = setInterval(createRipple, 800);
+        }
+
+        function startExhale() {
+            if (isSensorMode) return;
+            
+            isTouching = false;
+            
+            // 視覺變化：呼氣（收縮）
+            visualizer.style.transform = 'scale(1)';
+            visualizer.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+            stateText.innerText = '呼氣...';
+            instructionText.innerHTML = '請將手指<span class="text-yellow-300 font-bold">長按</span>螢幕中央來吸氣';
+            
+            // 背景漸變至藍色系 (放鬆)
+            body.classList.remove('bg-inhale');
+            body.classList.add('bg-exhale');
+
+            // 停止水波紋
+            clearInterval(rippleInterval);
+        }
+
+        // 綁定平板與手機的 Touch 事件
+        visualizer.addEventListener('touchstart', (e) => { e.preventDefault(); startInhale(); }, { passive: false });
+        visualizer.addEventListener('touchend', (e) => { e.preventDefault(); startExhale(); });
+        visualizer.addEventListener('touchcancel', (e) => { e.preventDefault(); startExhale(); });
+        
+        // 綁定電腦滑鼠事件（以便您在電腦上預覽）
+        visualizer.addEventListener('mousedown', startInhale);
+        visualizer.addEventListener('mouseup', startExhale);
+        visualizer.addEventListener('mouseleave', startExhale);
+
+        // 產生水波紋特效的函式
+        function createRipple() {
+            const ripple = document.createElement('div');
+            ripple.classList.add('ripple');
+            // 設定水波紋大小與中心點對齊
+            const rect = visualizer.getBoundingClientRect();
+            ripple.style.width = `${rect.width}px`;
+            ripple.style.height = `${rect.height}px`;
+            ripple.style.left = `${rect.left}px`;
+            ripple.style.top = `${rect.top}px`;
+            
+            interactionArea.appendChild(ripple);
+            
+            // 動畫結束後移除 DOM
+            setTimeout(() => {
+                ripple.remove();
+            }, 2000);
+        }
+
+        // ==========================================
+        // 模式 2：iPad 感測器互動邏輯 (DeviceOrientation)
+        // ==========================================
+
+        // iOS 13+ 需要取得使用者點擊授權
+        async function requestSensorPermission() {
+            try {
+                // 檢查是否為需要授權的 iOS 設備
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    const permissionState = await DeviceOrientationEvent.requestPermission();
+                    if (permissionState === 'granted') {
+                        enableSensorMode();
+                    } else {
+                        alert("需要允許取用感測器才能使用腹式呼吸功能喔！");
+                    }
+                } else {
+                    // 非 iOS 13+ 設備或 Android，直接啟用
+                    enableSensorMode();
+                }
+            } catch (error) {
+                console.error("感測器授權失敗:", error);
+                alert("此設備或瀏覽器不支援傾角感測器。");
+            }
+        }
+
+        let baseBeta = null; // 記錄初始的平躺角度作為基準點
+
+        function enableSensorMode() {
+            isSensorMode = true;
+            btnSensorMode.classList.add('hidden'); // 隱藏按鈕
+            sensorDataDisplay.classList.remove('hidden'); // 顯示除錯數據
+            sensorDataDisplay.classList.add('flex');
+            
+            instructionText.innerHTML = '請將平板<span class="text-yellow-300 font-bold">平放在肚子上</span><br><span class="text-sm">隨著呼吸讓肚子起伏，帶動波浪</span>';
+            stateText.innerText = '感測中';
+
+            // 監聽設備傾斜事件
+            window.addEventListener('deviceorientation', handleOrientation);
+            
+            // 重置視覺狀態
+            clearInterval(rippleInterval);
+            body.classList.remove('bg-inhale', 'bg-exhale');
+        }
+
+        function handleOrientation(event) {
+            // beta 範圍為 -180 到 180 (前後傾斜角度)
+            let beta = event.beta;
+            
+            if (beta === null) return; // 設備無感測器資料
+
+            // 抓取初始值作為基準，以適應學生肚子稍微不平的情況
+            if (baseBeta === null) {
+                baseBeta = beta;
+            }
+
+            // 計算與基準點的角度差 (通常呼吸引起的起伏角度在 2~10 度之間)
+            let diff = beta - baseBeta;
+            
+            // 更新 UI 數據顯示 (取小數點後一位)
+            tiltValueDisplay.innerText = diff.toFixed(1);
+
+            // 將角度差對應到 CSS Scale (縮放波浪)
+            // 假設腹部升起(吸氣)角度會改變，這裡設定 diff 增加 5 度時，scale 放大到 1.8
+            // 為了平滑，使用 Math.max 和 Math.min 限制範圍
+            let scaleValue = 1 + (diff / 5) * 0.8; 
+            scaleValue = Math.max(1, Math.min(scaleValue, 2.0)); // 限制在 1.0 到 2.0 之間
+            
+            visualizer.style.transform = `scale(${scaleValue})`;
+
+            // 狀態判定與背景顏色切換
+            if (scaleValue > 1.3) {
+                stateText.innerText = '吸氣...';
+                visualizer.style.backgroundColor = 'rgba(255, 255, 255, 0.4)';
+                body.style.backgroundPosition = '100% 50%'; // 綠色
+            } else {
+                stateText.innerText = '呼氣...';
+                visualizer.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                body.style.backgroundPosition = '0% 50%'; // 藍色
+                
+                // 稍微動態校準基準點，防止設備滑動導致基準偏移
+                baseBeta = baseBeta * 0.99 + beta * 0.01; 
+            }
+        }
+
+        // 綁定感測器授權按鈕
+        btnSensorMode.addEventListener('click', requestSensorPermission);
+
+    </script>
+</body>
+</html>

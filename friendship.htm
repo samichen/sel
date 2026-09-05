@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="陳世銘的教育AI">
+    <meta name="keywords" content="陳世銘, SEL, AI, 數位學習, sami.nibar.net, ai.at.tw, samichen@gmail.com">
+    <meta name="author" content="陳世銘">
+    <title>友誼連鎖反應 - SEL 互動遊戲</title>
+    <link rel="icon" href="https://ai.webideal.org/images/favicon.ico" type="image/x-icon" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        /* 隱藏預設滾動條並禁止縮放，確保平板 App 體驗 */
+        body { overscroll-behavior: none; touch-action: manipulation; }
+
+        /* 背景色過渡動畫，象徵社交環境的改善 */
+        .bg-network-transition {
+            transition: background-color 1s ease-in-out;
+        }
+        .bg-state-bad { background-color: #1e293b; } /* 暗沈的藍灰色 */
+        .bg-state-medium { background-color: #334155; }
+        .bg-state-good { background-color: #0f172a; }
+        .bg-state-perfect { background-color: #f0f9ff; } /* 明亮的天藍色 */
+
+        /* 節點動畫 */
+        .node-character {
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+        }
+        .node-character:hover {
+            transform: scale(1.1);
+        }
+        .node-happy { box-shadow: 0 0 20px rgba(52, 211, 153, 0.6); border-color: #34d399 !important; }
+        .node-sad { box-shadow: 0 0 10px rgba(248, 113, 113, 0.4); border-color: #f87171 !important; }
+
+        /* SVG 線條動畫 */
+        .line-transition {
+            transition: stroke 0.5s ease, stroke-dasharray 0.5s ease;
+        }
+        .line-pulse {
+            animation: pulse-line 2s infinite;
+        }
+        @keyframes pulse-line {
+            0% { opacity: 0.6; stroke-width: 4; }
+            50% { opacity: 1; stroke-width: 6; }
+            100% { opacity: 0.6; stroke-width: 4; }
+        }
+
+        /* 互動徽章（點擊修復的按鈕）脈衝效果 */
+        .badge-pulse {
+            animation: pulse-badge 1.5s infinite;
+        }
+        @keyframes pulse-badge {
+            0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* 震動錯誤提示 */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .shake-element { animation: shake 0.4s ease-in-out; }
+    </style>
+</head>
+<body class="bg-network-transition bg-state-bad min-h-screen flex flex-col font-sans overflow-hidden selection:bg-transparent text-white transition-colors duration-1000" id="app-body">
+
+    <!-- 頂部資訊區 -->
+    <header class="p-6 text-center z-10 relative">
+        <h1 class="text-3xl md:text-4xl font-bold mb-2 tracking-wide drop-shadow-md text-white transition-colors" id="main-title">🔗 友誼連鎖反應</h1>
+        <p class="text-lg opacity-90 drop-shadow-sm font-medium" id="instruction-text">
+            班上同學之間發生了一些誤會，網絡斷裂了。<br>
+            請點擊 <span class="text-red-400 font-bold bg-gray-800 px-2 rounded">修復</span> 按鈕，幫助他們重新建立連結！
+        </p>
+    </header>
+
+    <!-- 遊戲主要網絡區 -->
+    <main class="flex-1 w-full relative z-0" id="network-container">
+        
+        <!-- 底層 SVG：負責畫線 -->
+        <svg id="svg-layer" class="absolute inset-0 w-full h-full pointer-events-none z-0">
+            <!-- 線條將由 JS 動態生成 -->
+        </svg>
+
+        <!-- HTML 節點與互動按鈕容器 -->
+        <div id="nodes-layer" class="absolute inset-0 w-full h-full pointer-events-none z-10">
+            <!-- 節點與徽章將由 JS 動態生成，但徽章會開啟 pointer-events-auto -->
+        </div>
+
+    </main>
+
+    <!-- 情境選擇彈出視窗 (Modal) -->
+    <div id="scenario-modal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 hidden flex flex-col items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
+            <!-- Modal 標題區 -->
+            <div class="bg-blue-600 p-5 text-white flex items-center justify-between">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <span class="text-2xl">💬</span> 發生了什麼事？
+                </h2>
+                <button onclick="closeModal()" class="text-blue-200 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            
+            <!-- Modal 內容區 -->
+            <div class="p-6">
+                <p class="text-gray-800 text-lg mb-6 font-medium leading-relaxed bg-blue-50 p-4 rounded-xl border border-blue-100" id="modal-scenario-text">
+                    情境描述...
+                </p>
+                <p class="text-sm text-gray-500 mb-3 font-bold">請選擇最能修復關係的行動：</p>
+                
+                <!-- 選項按鈕區 -->
+                <div class="flex flex-col gap-3" id="modal-choices">
+                    <!-- 按鈕由 JS 生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結算畫面 -->
+    <div id="result-screen" class="fixed inset-0 bg-white z-50 hidden flex-col items-center justify-center p-6 text-center">
+        <div class="text-7xl mb-4">🌈</div>
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">完美連結！</h2>
+        <p class="text-xl text-gray-600 mb-8 max-w-md leading-relaxed">
+            你成功修復了所有的誤會。<br>
+            看！當大家願意溝通與包容時，整個班級的氣氛都變得明亮起來了！這就是<strong class="text-blue-600">正向的連鎖反應</strong>。
+        </p>
+        <button onclick="location.reload()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full shadow-lg transition-transform transform active:scale-95 text-xl">
+            重新體驗
+        </button>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 遊戲資料結構設定
+        // ==========================================
+
+        // 定義人物節點 (座標使用百分比以適應 RWD 螢幕)
+        const nodesData = {
+            'A': { id: 'A', name: '小安', emoji: '🧑', x: 20, y: 30 },
+            'B': { id: 'B', name: '小莉', emoji: '👧', x: 80, y: 30 },
+            'C': { id: 'C', name: '阿傑', emoji: '👦', x: 20, y: 70 },
+            'D': { id: 'D', name: '美美', emoji: '👩', x: 80, y: 70 },
+            'E': { id: 'E', name: '老師', emoji: '👨‍🏫', x: 50, y: 50 } // 中央節點
+        };
+
+        // 定義友誼連線與衝突情境
+        // status: 'broken' (斷裂/需修復), 'fixed' (已修復), 'good' (一開始就是好的)
+        let edgesData = [
+            {
+                id: 'edge1', source: 'A', target: 'B', status: 'broken',
+                scenario: {
+                    text: "小安不小心弄壞了小莉借他的文具，小安覺得很害怕不敢說，小莉發現後非常生氣。",
+                    choices: [
+                        { text: "小安裝作不知道，趕快躲開。", isCorrect: false, feedback: "逃避會讓小莉更生氣，關係會更惡化喔。" },
+                        { text: "小安說：『這本來就不堅固啊！』", isCorrect: false, feedback: "推卸責任是無效溝通，會傷害感情。" },
+                        { text: "小安誠懇道歉，並主動提出會買一個新的賠償給小莉。", isCorrect: true, feedback: "勇於負責並提出補救方案，是修復信任的第一步！" }
+                    ]
+                }
+            },
+            {
+                id: 'edge2', source: 'C', target: 'D', status: 'broken',
+                scenario: {
+                    text: "分組討論時，阿傑一直打斷美美發言，美美覺得不被尊重，氣得不想講話了。",
+                    choices: [
+                        { text: "阿傑發現美美不講話，自己繼續把報告做完。", isCorrect: false, feedback: "雖然工作完成了，但團隊的氣氛已經被破壞。" },
+                        { text: "阿傑主動停下來說：『抱歉我剛剛太激動了，美美妳的想法是什麼？我聽妳說。』", isCorrect: true, feedback: "『積極傾聽』與『讓出發言權』是非常棒的人際技巧！" },
+                        { text: "阿傑對美美說：『妳怎麼突然擺臭臉啊？』", isCorrect: false, feedback: "帶有指責的語氣會引發更大的衝突。" }
+                    ]
+                }
+            },
+            {
+                id: 'edge3', source: 'B', target: 'E', status: 'broken',
+                scenario: {
+                    text: "小莉覺得老師最近總是在針對她，指正她的作業，讓她感到很委屈。",
+                    choices: [
+                        { text: "小莉找時間私下跟老師說：『老師，最近一直被退件讓我覺得很挫折，可以教我怎麼改進嗎？』", isCorrect: true, feedback: "用『我訊息(I-message)』表達感受並尋求幫助，能建立良好的師生溝通。" },
+                        { text: "小莉在全班面前對老師大吼：『你就是看我不順眼！』", isCorrect: false, feedback: "情緒失控會讓溝通關閉，無法解決問題。" },
+                        { text: "小莉決定以後都不要交作業了。", isCorrect: false, feedback: "賭氣只會讓自己的學習權益受損。" }
+                    ]
+                }
+            },
+            { id: 'edge4', source: 'A', target: 'C', status: 'good' }, // 原本就很好的朋友
+            { id: 'edge5', source: 'D', target: 'E', status: 'good' }
+        ];
+
+        // 系統狀態
+        const svgLayer = document.getElementById('svg-layer');
+        const nodesLayer = document.getElementById('nodes-layer');
+        const appBody = document.getElementById('app-body');
+        const mainTitle = document.getElementById('main-title');
+        const instructionText = document.getElementById('instruction-text');
+        
+        let currentEditingEdgeId = null;
+
+        // ==========================================
+        // 2. 渲染邏輯 (UI Rendering)
+        // ==========================================
+
+        function renderNetwork() {
+            // 清空圖層
+            svgLayer.innerHTML = '';
+            nodesLayer.innerHTML = '';
+
+            // 1. 繪製線條 (底層 SVG)
+            edgesData.forEach(edge => {
+                const sourceNode = nodesData[edge.source];
+                const targetNode = nodesData[edge.target];
+                
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', `${sourceNode.x}%`);
+                line.setAttribute('y1', `${sourceNode.y}%`);
+                line.setAttribute('x2', `${targetNode.x}%`);
+                line.setAttribute('y2', `${targetNode.y}%`);
+                
+                // 根據狀態設定線條樣式
+                if (edge.status === 'broken') {
+                    line.setAttribute('stroke', '#ef4444'); // Tailwind red-500
+                    line.setAttribute('stroke-width', '4');
+                    line.setAttribute('stroke-dasharray', '8, 8');
+                    line.setAttribute('class', 'line-transition');
+                } else {
+                    line.setAttribute('stroke', '#34d399'); // Tailwind emerald-400
+                    line.setAttribute('stroke-width', '6');
+                    line.setAttribute('class', 'line-transition line-pulse');
+                }
+                svgLayer.appendChild(line);
+
+                // 2. 繪製互動徽章 (在中點)
+                if (edge.status === 'broken') {
+                    const midX = (sourceNode.x + targetNode.x) / 2;
+                    const midY = (sourceNode.y + targetNode.y) / 2;
+
+                    const badge = document.createElement('div');
+                    // pointer-events-auto 允許點擊
+                    badge.className = 'absolute bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-3 rounded-full cursor-pointer shadow-lg transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto badge-pulse transition-transform';
+                    badge.style.left = `${midX}%`;
+                    badge.style.top = `${midY}%`;
+                    badge.innerText = '🔧 修復';
+                    badge.onclick = () => openModal(edge.id);
+                    nodesLayer.appendChild(badge);
+                }
+            });
+
+            // 3. 繪製人物節點 (上層 DOM)
+            Object.values(nodesData).forEach(node => {
+                const isAllConnectionsGood = checkNodeStatus(node.id);
+
+                const nodeEl = document.createElement('div');
+                nodeEl.className = `absolute transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center text-3xl md:text-4xl shadow-xl border-4 node-character pointer-events-none ${isAllConnectionsGood ? 'node-happy' : 'node-sad'}`;
+                nodeEl.style.left = `${node.x}%`;
+                nodeEl.style.top = `${node.y}%`;
+                
+                nodeEl.innerHTML = `
+                    ${node.emoji}
+                    <div class="absolute -bottom-6 text-sm font-bold text-gray-200 bg-black bg-opacity-50 px-2 rounded-md whitespace-nowrap">${node.name}</div>
+                `;
+                nodesLayer.appendChild(nodeEl);
+            });
+
+            checkOverallProgress();
+        }
+
+        // 檢查單一節點是否所有連線都已修復
+        function checkNodeStatus(nodeId) {
+            const connectedEdges = edgesData.filter(e => e.source === nodeId || e.target === nodeId);
+            return connectedEdges.every(e => e.status !== 'broken');
+        }
+
+        // ==========================================
+        // 3. 互動與遊戲邏輯
+        // ==========================================
+
+        function openModal(edgeId) {
+            currentEditingEdgeId = edgeId;
+            const edge = edgesData.find(e => e.id === edgeId);
+            const scenario = edge.scenario;
+
+            document.getElementById('modal-scenario-text').innerText = scenario.text;
+            const choicesContainer = document.getElementById('modal-choices');
+            choicesContainer.innerHTML = '';
+
+            // 打亂選項
+            const shuffledChoices = [...scenario.choices].sort(() => Math.random() - 0.5);
+
+            shuffledChoices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left bg-gray-50 hover:bg-blue-50 border-2 border-gray-200 p-4 rounded-xl text-gray-800 transition-colors active:bg-blue-100 font-medium text-[15px]';
+                btn.innerText = choice.text;
+                btn.onclick = () => handleChoice(choice, btn);
+                choicesContainer.appendChild(btn);
+            });
+
+            const modal = document.getElementById('scenario-modal');
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('scenario-modal').classList.add('hidden');
+            currentEditingEdgeId = null;
+        }
+
+        function handleChoice(choice, btnElement) {
+            if (choice.isCorrect) {
+                // 答對邏輯
+                btnElement.classList.replace('border-gray-200', 'border-green-500');
+                btnElement.classList.replace('bg-gray-50', 'bg-green-50');
+                btnElement.classList.add('text-green-800');
+                
+                // 更新資料狀態
+                const edgeIndex = edgesData.findIndex(e => e.id === currentEditingEdgeId);
+                edgesData[edgeIndex].status = 'fixed';
+
+                // 延遲關閉視窗以讓玩家看見正確回饋
+                setTimeout(() => {
+                    closeModal();
+                    renderNetwork(); // 重新渲染畫面
+                    
+                    // 局部彩帶特效
+                    confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 } });
+                }, 800);
+
+            } else {
+                // 答錯邏輯
+                btnElement.classList.add('shake-element', 'bg-red-50', 'border-red-400', 'text-red-800');
+                
+                // 提示回饋
+                const originalText = btnElement.innerText;
+                btnElement.innerText = `❌ ${choice.feedback}`;
+                
+                setTimeout(() => {
+                    btnElement.classList.remove('shake-element');
+                    btnElement.innerText = originalText; // 恢復文字讓學生重選
+                }, 2000);
+            }
+        }
+
+        // 檢查整體進度並改變環境背景色
+        function checkOverallProgress() {
+            const brokenCount = edgesData.filter(e => e.status === 'broken').length;
+            const totalBroken = edgesData.filter(e => e.scenario).length; // 需要修復的總數
+            
+            // 根據剩餘未修復數量改變背景色
+            appBody.className = "bg-network-transition min-h-screen flex flex-col font-sans overflow-hidden selection:bg-transparent transition-colors duration-1000";
+            
+            if (brokenCount === totalBroken) {
+                appBody.classList.add('bg-state-bad', 'text-white');
+            } else if (brokenCount > 0) {
+                appBody.classList.add('bg-state-medium', 'text-white');
+            } else {
+                // 勝利狀態
+                appBody.classList.add('bg-state-perfect', 'text-gray-800');
+                mainTitle.classList.replace('text-white', 'text-blue-800');
+                instructionText.classList.replace('text-white', 'text-gray-700');
+                
+                // 延遲顯示最終結算畫面
+                setTimeout(showWinScreen, 1500);
+            }
+        }
+
+        function showWinScreen() {
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('result-screen').classList.add('flex');
+            
+            // 大型慶祝特效
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#34d399', '#60a5fa', '#fbbf24'] });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#34d399', '#60a5fa', '#fbbf24'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        // 初始化遊戲
+        window.onload = () => {
+            renderNetwork();
+        };
+
+        // 監聽視窗縮放以重繪線條 (確保 SVG 與 DOM 完美對齊)
+        window.addEventListener('resize', renderNetwork);
+
+    </script>
+</body>
+</html>

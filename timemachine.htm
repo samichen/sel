@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="陳世銘的教育AI">
+    <meta name="keywords" content="陳世銘, SEL, AI, 數位學習, sami.nibar.net, ai.at.tw, samichen@gmail.com">
+    <meta name="author" content="陳世銘">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>決定後果時光機 - SEL 互動遊戲</title>
+    <link rel="icon" href="https://ai.webideal.org/images/favicon.ico" type="image/x-icon" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body { overscroll-behavior: none; touch-action: manipulation; }
+
+        /* 畫面切換淡入淡出 */
+        .fade-enter { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ---------------------------------- */
+        /* 時光隧道特效 (純 CSS 實作)        */
+        /* ---------------------------------- */
+        #time-tunnel {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            z-index: 50;
+        }
+
+        .tunnel-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 4px solid transparent;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 20px rgba(0, 255, 255, 0.5);
+            opacity: 0;
+        }
+
+        /* 穿越到未來的動畫 */
+        .travel-future .tunnel-ring { animation: warp-forward 2s cubic-bezier(0.4, 0, 1, 1) infinite; }
+        @keyframes warp-forward {
+            0% { transform: scale(0.1) rotate(0deg); opacity: 0; border-color: rgba(0, 255, 255, 0.8); }
+            50% { opacity: 1; }
+            100% { transform: scale(15) rotate(180deg); opacity: 0; border-color: rgba(255, 0, 255, 0.8); }
+        }
+
+        /* 時光倒流的動畫 */
+        .travel-past .tunnel-ring { animation: warp-backward 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        @keyframes warp-backward {
+            0% { transform: scale(15) rotate(180deg); opacity: 0; border-color: rgba(255, 200, 0, 0.8); }
+            50% { opacity: 1; }
+            100% { transform: scale(0.1) rotate(0deg); opacity: 0; border-color: rgba(0, 255, 100, 0.8); }
+        }
+
+        /* 隧道環的延遲設定，創造隧道景深 */
+        .tunnel-ring:nth-child(1) { animation-delay: 0s; }
+        .tunnel-ring:nth-child(2) { animation-delay: 0.4s; }
+        .tunnel-ring:nth-child(3) { animation-delay: 0.8s; }
+        .tunnel-ring:nth-child(4) { animation-delay: 1.2s; }
+        .tunnel-ring:nth-child(5) { animation-delay: 1.6s; }
+
+        /* 時空震動效果 */
+        .shake-screen { animation: screen-shake 0.1s infinite; }
+        @keyframes screen-shake {
+            0% { transform: translate(2px, 1px) rotate(0deg); }
+            50% { transform: translate(-1px, -2px) rotate(-1deg); }
+            100% { transform: translate(-3px, 0px) rotate(1deg); }
+        }
+
+        /* 日期跳動數字 */
+        #date-counter {
+            font-family: 'Courier New', Courier, monospace;
+            text-shadow: 0 0 10px rgba(255,255,255,0.8);
+            font-variant-numeric: tabular-nums; /* 確保數字等寬，防止跳動時字串左右抖動 */
+        }
+    </style>
+</head>
+<body class="bg-indigo-50 min-h-screen flex flex-col items-center justify-center font-sans selection:bg-indigo-200 text-gray-800 p-4">
+
+    <!-- Tailwind Class Safelist (供 CDN 解析器讀取，確保動態顏色生效) -->
+    <div class="hidden bg-purple-600 bg-rose-600 bg-amber-600 bg-orange-600 bg-emerald-600 bg-indigo-600 
+                bg-purple-800 bg-rose-800 bg-amber-800 bg-orange-800 bg-emerald-800 bg-indigo-800 
+                border-purple-200 border-rose-200 border-amber-200 border-orange-200 border-emerald-200 border-indigo-100 
+                text-purple-800 text-rose-800 text-amber-800 text-orange-800 text-emerald-800 text-indigo-800"></div>
+
+    <!-- 時光隧道全螢幕特效遮罩 -->
+    <div id="time-tunnel">
+        <div class="tunnel-ring w-20 h-20"></div>
+        <div class="tunnel-ring w-40 h-40"></div>
+        <div class="tunnel-ring w-60 h-60"></div>
+        <div class="tunnel-ring w-80 h-80"></div>
+        <div class="tunnel-ring w-[30rem] h-[30rem]"></div>
+        
+        <div class="z-10 text-center relative">
+            <h2 class="text-white text-3xl md:text-5xl font-bold mb-2 tracking-widest" id="travel-text">時空跳躍中</h2>
+            <div class="text-cyan-300 text-4xl md:text-5xl font-bold tracking-wider" id="date-counter">2024-01-01</div>
+        </div>
+    </div>
+
+    <!-- 主要遊戲容器 -->
+    <main class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col min-h-[70vh] relative border-4 border-indigo-100 transition-colors duration-500" id="game-container">
+        
+        <!-- 頂部進度與標題 -->
+        <header id="main-header" class="bg-indigo-600 text-white p-5 shadow-md z-10 transition-colors duration-500">
+            <div class="flex items-center justify-between mb-2">
+                <span id="theme-badge" class="text-white font-bold text-sm tracking-wider bg-white/20 px-2 py-1 rounded">⏱️ 主題載入中...</span>
+                <span class="bg-indigo-800 px-3 py-1 rounded-full text-xs font-bold transition-colors duration-500" id="scenario-counter">情境 1 / 3</span>
+            </div>
+            <h1 class="font-bold text-2xl md:text-3xl flex items-center gap-2" id="scenario-title">
+                <span id="scenario-icon"></span>
+                <span id="scenario-title-text">載入中...</span>
+            </h1>
+        </header>
+
+        <!-- 內容顯示區 (背景改為中性灰，凸顯標題顏色) -->
+        <div class="flex-1 p-6 md:p-8 flex flex-col bg-gray-50 overflow-y-auto" id="content-area">
+            
+            <!-- 視圖 A：情境描述與選項 (預設顯示) -->
+            <div id="view-scenario" class="flex-1 flex flex-col fade-enter">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-indigo-100 mb-6 relative">
+                    <div class="absolute -top-4 -left-2 text-4xl">🤔</div>
+                    <p class="text-lg md:text-xl text-gray-700 leading-relaxed font-medium mt-2" id="scenario-desc">
+                        情境描述內容...
+                    </p>
+                </div>
+                
+                <p class="text-gray-500 font-bold mb-3">你決定怎麼做？</p>
+                <div class="flex flex-col gap-3 flex-1" id="choices-container">
+                    <!-- 選項按鈕由 JS 生成 -->
+                </div>
+            </div>
+
+            <!-- 視圖 B：未來後果展示 -->
+            <div id="view-consequence" class="flex-1 flex flex-col hidden fade-enter">
+                <div class="text-center mb-6 mt-4">
+                    <span class="text-5xl mb-2 block" id="consequence-icon">🔮</span>
+                    <h2 class="text-2xl font-bold text-indigo-800">時間快轉：一週後...</h2>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-md border-l-8 mb-6 flex-1" id="consequence-box">
+                    <p class="text-lg md:text-xl text-gray-700 leading-relaxed font-medium" id="consequence-text">
+                        後果描述內容...
+                    </p>
+                </div>
+
+                <!-- 回溯按鈕或繼續按鈕 -->
+                <div class="flex flex-col gap-3 mt-auto" id="action-buttons">
+                    <button id="btn-rewind" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-xl shadow-lg transition-transform transform active:scale-95 text-lg flex items-center justify-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"></path></svg>
+                        這結果不太好... 啟動時光倒流！
+                    </button>
+                    
+                    <button id="btn-next" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg transition-transform transform active:scale-95 text-lg hidden flex-center justify-center gap-2">
+                        這是一個負責任的決定，前往下個考驗 ➔
+                    </button>
+                </div>
+            </div>
+
+            <!-- 視圖 C：最終結算 -->
+            <div id="view-final" class="flex-1 flex flex-col items-center justify-center hidden fade-enter text-center">
+                <div class="text-7xl mb-4">🏆</div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">時光機任務完成！</h2>
+                <p class="text-xl text-gray-600 mb-8 max-w-md leading-relaxed">
+                    現實生活中沒有時光機可以重來。<br>
+                    所以我們更需要在行動前，<strong>先思考後果，做出對自己與他人都負責的選擇。</strong>
+                </p>
+                <button onclick="location.reload()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-10 rounded-full shadow-lg transition-colors text-xl" id="btn-restart">
+                    重新體驗新主題
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // ==========================================
+        // 1. 遊戲資料 (30個情境，5大主題)
+        // ==========================================
+        const themeStyles = {
+            'digital': { color: 'purple', bg: 'bg-purple-600', badge: 'bg-purple-800', border: 'border-purple-200' },
+            'interpersonal': { color: 'rose', bg: 'bg-rose-600', badge: 'bg-rose-800', border: 'border-rose-200' },
+            'honesty': { color: 'amber', bg: 'bg-amber-600', badge: 'bg-amber-800', border: 'border-amber-200' },
+            'emotion': { color: 'orange', bg: 'bg-orange-600', badge: 'bg-orange-800', border: 'border-orange-200' },
+            'teamwork': { color: 'emerald', bg: 'bg-emerald-600', badge: 'bg-emerald-800', border: 'border-emerald-200' }
+        };
+
+        const allScenariosData = [
+            // --- 主題 1：數位與網路素養 (digital) ---
+            {
+                theme: 'digital', themeName: '數位與網路素養', icon: '📱', title: "不明的群組截圖",
+                desc: "同學在群組發了一張別班同學的搞笑偷拍截圖，大家都在下面狂笑、接龍傳貼圖...",
+                choices: [
+                    { text: "在群組發聲：「這樣有點不尊重人，我們刪掉吧。」", type: "best", consequence: "同學雖然一開始嫌你破壞氣氛，但隨後照片被收回了，你成功阻止了網路霸凌擴大。" },
+                    { text: "跟著大家傳一個搞笑貼圖，反正是開玩笑的。", type: "bad", consequence: "當事人看到後非常難過並告訴老師。你成為了網路霸凌的幫兇，感到很內疚。" },
+                    { text: "已讀不回，當作沒看到。", type: "neutral", consequence: "截圖越傳越廣，最後驚動了雙方家長。雖然你沒參與，但班級氣氛變得非常糟糕。" }
+                ]
+            },
+            {
+                theme: 'digital', themeName: '數位與網路素養', icon: '🎮', title: "借用遊戲帳號",
+                desc: "你在遊戲裡認識的網友說要幫你「免費練等」，只要你把帳號密碼給他...",
+                choices: [
+                    { text: "委婉拒絕，表示自己慢慢練就好。", type: "best", consequence: "你的帳號很安全，後來聽說有其他玩家被該網友騙走了所有虛擬寶物，你慶幸自己的警覺。" },
+                    { text: "把密碼給他，反正只是遊戲。", type: "bad", consequence: "隔天登入時發現密碼被改了，辛苦存的裝備全都不見，你難過了好幾天。" },
+                    { text: "給他一個沒有裝備的小帳號測試。", type: "neutral", consequence: "小帳號的確被盜了。雖然損失不大，但你意識到網路上的陌生人真的不能隨便信任。" }
+                ]
+            },
+            {
+                theme: 'digital', themeName: '數位與網路素養', icon: '💬', title: "匿名的惡評",
+                desc: "學校的匿名留言板上，有人在批評你最好朋友的長相。你知道是誰留的言...",
+                choices: [
+                    { text: "私下安慰朋友，並將截圖交給老師處理。", type: "best", consequence: "老師介入輔導了留言者，留言板被關閉整頓。朋友因為有你的支持，沒有受到太大打擊。" },
+                    { text: "也用匿名在下面用髒話罵回去幫朋友出氣。", type: "bad", consequence: "演變成嚴重的網路筆戰，最後你們雙方都被學校記過，朋友也沒有因此比較開心。" },
+                    { text: "假裝不知道，怕惹禍上身。", type: "neutral", consequence: "朋友後來看到了留言，非常崩潰。他知道你知情卻沒告訴他後，對你產生了不信任感。" }
+                ]
+            },
+            {
+                theme: 'digital', themeName: '數位與網路素養', icon: '🛒', title: "免費送手機的廣告",
+                desc: "你在滑社群時，看到「填問卷抽最新款 iPhone，中獎率 100%」的廣告，只需輸入家裡地址和電話...",
+                choices: [
+                    { text: "立刻關掉廣告，天下沒有白吃的午餐。", type: "best", consequence: "你保護了家人的個資安全。後來新聞報導這是一個跨國詐騙集團的手法。" },
+                    { text: "馬上填寫家裡的詳細資料。", type: "bad", consequence: "接下來幾個月，家裡不斷接到推銷和詐騙電話，爸媽為此非常生氣且困擾。" },
+                    { text: "填寫假資料試試看。", type: "neutral", consequence: "雖然沒洩漏個資，但你不小心點擊了帶有惡意程式的連結，導致手機開始跳出奇怪的廣告。" }
+                ]
+            },
+            {
+                theme: 'digital', themeName: '數位與網路素養', icon: '🎙️', title: "語音頻道的失控",
+                desc: "和同學連線打遊戲時，隊友一直失誤。另一個同學開始在語音頻道用髒話飆罵他...",
+                choices: [
+                    { text: "開麥克風緩頰：「只是遊戲而已，大家冷靜一點，下一場再贏回來。」", type: "best", consequence: "氣氛緩和了下來，失誤的同學私下向你道謝，大家後來又開心地玩了幾場。" },
+                    { text: "跟著一起罵，覺得隊友真的很雷。", type: "bad", consequence: "被罵的同學直接退群並封鎖了你們，隔天在班上氣氛超尷尬，你失去了一個朋友。" },
+                    { text: "把語音靜音，自己默默打完。", type: "neutral", consequence: "雖然你避開了爭端，但隊友退群了，群組因為這次爭吵而解散，大家再也沒一起玩過。" }
+                ]
+            },
+            {
+                theme: 'digital', themeName: '數位與網路素養', icon: '📸', title: "未經同意的限動",
+                desc: "你拍到一張朋友吃東西時表情超級滑稽的照片，覺得發到限時動態一定會有很多讚...",
+                choices: [
+                    { text: "先拿給朋友看，問他：「這張超好笑，我可以發限動嗎？」", type: "best", consequence: "朋友覺得無傷大雅並同意了，大家在留言區互動熱烈，是一次開心的分享。" },
+                    { text: "直接發布，還標註朋友的帳號。", type: "bad", consequence: "朋友非常介意自己的形象，私訊叫你立刻刪除，並因此對你大發脾氣，好幾天不跟你說話。" },
+                    { text: "只發給幾個「好兄弟」私下笑。", type: "neutral", consequence: "其中一人不小心外流了照片，朋友還是知道了。他覺得你們在背後嘲笑他，感到很受傷。" }
+                ]
+            },
+
+            // --- 主題 2：校園人際關係 (interpersonal) ---
+            {
+                theme: 'interpersonal', themeName: '校園人際關係', icon: '🚫', title: "被冷落的轉學生",
+                desc: "班上來了一位轉學生，但他講話有口音，班上幾個強勢的同學故意模仿並排擠他...",
+                choices: [
+                    { text: "主動去跟他聊天，邀請他中午一起吃飯。", type: "best", consequence: "轉學生非常感激你的善意。你們發現彼此有共同的興趣，你交到了一個非常棒的知心好友。" },
+                    { text: "跟著大家一起模仿他，想融入強勢的圈子。", type: "bad", consequence: "你雖然被接納了，但看著轉學生偷偷哭泣，你心裡充滿罪惡感。後來老師嚴厲懲處了所有參與者。" },
+                    { text: "不理會，自己做自己的事。", type: "neutral", consequence: "轉學生一直無法適應班級，下學期就轉走了。你偶爾會想，如果當時有人幫他一把就好了。" }
+                ]
+            },
+            {
+                theme: 'interpersonal', themeName: '校園人際關係', icon: '🤫', title: "小圈圈的秘密",
+                desc: "你的好朋友偷偷告訴你一個關於另一個同學的八卦，並要你發誓絕對不能說出去...",
+                choices: [
+                    { text: "告訴朋友：「這種傳言會傷害人，我們不要再傳了。」", type: "best", consequence: "朋友意識到不妥。後來證實那是個不實謠言，你成功阻止了對無辜同學的傷害。" },
+                    { text: "馬上跑去告訴另一個朋友，覺得這太八卦了。", type: "bad", consequence: "八卦傳遍全班，當事人崩潰。你的好朋友發現是你洩密的，立刻跟你絕交，大家都覺得你大嘴巴。" },
+                    { text: "聽完就算了，不表態也不外傳。", type: "neutral", consequence: "雖然你守住了秘密，但謠言還是從其他管道傳開了。班級陷入互相猜忌的氛圍。" }
+                ]
+            },
+            {
+                theme: 'interpersonal', themeName: '校園人際關係', icon: '🏃', title: "拒絕跑腿的勇氣",
+                desc: "班上體型高大的同學，這禮拜已經是第三次叫你用自己的零用錢幫他去福利社買飲料了...",
+                choices: [
+                    { text: "堅定地說：「我沒錢也沒空，請你自己去買。」", type: "best", consequence: "雖然他一開始有點不高興，但發現你不好欺負後，就再也沒有使喚過你。你贏得了尊重。" },
+                    { text: "默默忍受，拿自己的錢去幫他買。", type: "bad", consequence: "他把這當成了理所當然，甚至開始叫你幫他寫作業。你每天上學都覺得壓力很大、很不開心。" },
+                    { text: "找藉口說肚子痛逃跑。", type: "neutral", consequence: "這次逃過了，但他隔天還是繼續找你。問題沒有解決，你只能每天躲躲藏藏。" }
+                ]
+            },
+            {
+                theme: 'interpersonal', themeName: '校園人際關係', icon: '🏀', title: "球場上的衝突",
+                desc: "打籃球時，對方一個大動作犯規把你撞倒在地，你膝蓋擦傷，痛得眼淚都快掉下來...",
+                choices: [
+                    { text: "深呼吸，等對方道歉，並請同學陪你去保健室。", type: "best", consequence: "對方連聲道歉並扶你去擦藥。大家覺得你很有風度，雙方化解了尷尬，隔天又一起打球了。" },
+                    { text: "爬起來直接推對方一把，大罵髒話。", type: "bad", consequence: "演變成嚴重的肢體衝突，兩人都被記過，並且被禁止使用籃球場一個月。" },
+                    { text: "自認倒楣，一聲不吭地離開球場。", type: "neutral", consequence: "對方以為你沒事，也沒道歉。你心裡一直覺得很委屈，從此不再去那個球場打球。" }
+                ]
+            },
+            {
+                theme: 'interpersonal', themeName: '校園人際關係', icon: '✏️', title: "有借無還的文具",
+                desc: "同學借了你最喜歡的名牌自動鉛筆，已經過了一個禮拜都沒還。你看到筆在他桌上...",
+                choices: [
+                    { text: "直接過去說：「這支筆是我借你的，我現在需要用，請還給我。」", type: "best", consequence: "同學立刻道歉並歸還了筆。清晰且直接的溝通，既拿回物品又沒有破壞雙方感情。" },
+                    { text: "趁他不在，偷偷把筆拿回來。", type: "bad", consequence: "同學以為筆不見了，在班上大吵大鬧。後來發現是你拿走的，反而指責你為什麼不直接說，引發誤會。" },
+                    { text: "不敢開口要，想說算了再去買一支。", type: "neutral", consequence: "你損失了金錢和心愛的文具，且心裡一直對這個同學有芥蒂，關係漸漸疏遠。" }
+                ]
+            },
+            {
+                theme: 'interpersonal', themeName: '校園人際關係', icon: '👂', title: "不小心聽到的壞話",
+                desc: "你在廁所隔間裡，不小心聽到外面有兩個平時跟你不錯的同學，正在抱怨你的缺點...",
+                choices: [
+                    { text: "事後找機會平靜地問他們：「我聽到了，我們之間是不是有什麼誤會？」", type: "best", consequence: "把話說開後，你發現是自己之前的某個無心之舉讓他們受傷了。道歉後，你們的友誼變得更堅固。" },
+                    { text: "衝出去對他們大吼，然後到處說他們的壞話。", type: "bad", consequence: "班級分裂成兩派，互相攻擊。你每天在學校都充滿怨氣，原本的小缺點也被無限放大。" },
+                    { text: "當作沒聽到，但心裡默默疏遠他們。", type: "neutral", consequence: "你們不再是一起玩的朋友了。雖然沒有公開衝突，但你失去了一段關係，且問題沒有得到解決。" }
+                ]
+            },
+
+            // --- 主題 3：誠實與自我負責 (honesty) ---
+            {
+                theme: 'honesty', themeName: '誠實與自我負責', icon: '💵', title: "撿到的五百元",
+                desc: "你在操場角落撿到一個皮夾，裡面有 500 元。你最近剛好很想買遊戲的虛擬寶物...",
+                choices: [
+                    { text: "立刻拿去學務處交給老師廣播協尋。", type: "best", consequence: "失主學弟急得快哭了，特地來道謝。學校表揚了你的誠實，你心裡覺得踏實與驕傲。" },
+                    { text: "把 500 元偷偷拿走，空皮夾丟進垃圾桶。", type: "bad", consequence: "你買了寶物，但每天提心吊膽。幾天後有同學告訴老師那天看到你在操場徘徊，你面臨嚴重處分。" },
+                    { text: "裝作沒看到，直接走過去。", type: "neutral", consequence: "錢包後來被別人撿走，失主沒找回重要證件。你心裡總有一絲遺憾，覺得當時如果幫忙就好了。" }
+                ]
+            },
+            {
+                theme: 'honesty', themeName: '誠實與自我負責', icon: '📝', title: "考卷上的誘惑",
+                desc: "期中考數學科，老師轉頭寫黑板，你只要瞄一眼旁邊數學天才的考卷就能看到最後一題答案...",
+                choices: [
+                    { text: "深呼吸克制自己，靠自己的能力寫完。", type: "best", consequence: "雖然成績不理想，但你清楚自己哪裡不會。請教老師後終於弄懂，你對自己坦誠的態度感到自豪。" },
+                    { text: "偷偷看一眼，把答案抄下來。", type: "bad", consequence: "老師檢討時請你上台講解這題算式，你完全答不出來，在全班面前僵在講台上，最後被記了作弊。" },
+                    { text: "因為不會寫，直接趴下來睡覺放棄。", type: "neutral", consequence: "你交了白卷，成績很難看。雖然沒作弊，但你放棄了為自己學習負責的機會。" }
+                ]
+            },
+            {
+                theme: 'honesty', themeName: '誠實與自我負責', icon: '🪴', title: "打破走廊的花盆",
+                desc: "下課和同學在走廊奔跑，你不小心撞倒了老師最心愛的盆栽，花盆碎了一地。四下無人...",
+                choices: [
+                    { text: "主動去找老師承認錯誤，並幫忙把碎片清理乾淨。", type: "best", consequence: "老師雖然心痛，但讚賞你的誠實與負責態度，並未過度責備，只要求你帶個新花盆來賠償。" },
+                    { text: "趕快逃離現場，假裝什麼都沒發生。", type: "bad", consequence: "學校調閱了走廊監視器，隔天在朝會上公開點名你。你因為逃避責任而受到更嚴厲的懲罰。" },
+                    { text: "把碎片踢到角落，試圖掩蓋痕跡。", type: "neutral", consequence: "碎片不小心割傷了經過的低年級學童。你良心非常不安，最後還是向老師自首了。" }
+                ]
+            },
+            {
+                theme: 'honesty', themeName: '誠實與自我負責', icon: '💰', title: "店員多找的錢",
+                desc: "去便利商店買飲料，結帳後你發現店員把你給的 100 元當成了 500 元，多找了你 400 元...",
+                choices: [
+                    { text: "當場提醒店員：「不好意思，你多找錢給我了。」", type: "best", consequence: "店員非常感激，說這筆錢如果少了，他要自己賠償。你的一個小舉動，拯救了他一天的薪水。" },
+                    { text: "把錢塞進口袋，覺得是自己賺到了。", type: "bad", consequence: "店員交接班時發現少錢，調閱監視器報警。警察通知家長與學校，你為了一點小錢留下污點。" },
+                    { text: "走出店外才發現，覺得回去太麻煩就留著了。", type: "neutral", consequence: "你心裡一直覺得怪怪的，那筆錢也不敢隨便花掉，反而成了一個心理負擔。" }
+                ]
+            },
+            {
+                theme: 'honesty', themeName: '誠實與自我負責', icon: '🤖', title: "作業的捷徑",
+                desc: "週末作業要寫一篇 1000 字的讀書心得，你完全沒看書。你想起可以用 AI 直接生成一篇交差...",
+                choices: [
+                    { text: "自己先閱讀重點，只用 AI 幫忙檢查錯字與潤飾句子。", type: "best", consequence: "你的心得寫得很真誠，老師給了很高的評價。你學會了將 AI 作為輔助工具，而非取代思考。" },
+                    { text: "直接叫 AI 寫完，複製貼上交出去。", type: "bad", consequence: "AI 捏造了書裡根本沒有的情節，老師一眼就看穿了。你的作業被退回，並要求重寫兩倍字數。" },
+                    { text: "上網搜尋別人的心得，稍微改寫幾句交差。", type: "neutral", consequence: "雖然沒被發現，但考試考到該書內容時你完全不會。你浪費了一次鍛鍊寫作與思考的機會。" }
+                ]
+            },
+            {
+                theme: 'honesty', themeName: '誠實與自我負責', icon: '📘', title: "弄壞圖書館的書",
+                desc: "你不小心把水打翻，把從圖書館借來的一本珍貴畫冊弄濕了一大半，書頁都黏在一起了...",
+                choices: [
+                    { text: "帶去圖書館向館員道歉，並詢問賠償方式。", type: "best", consequence: "館員雖然無奈，但看你態度誠懇，只要求你依規定賠償同等價值的書。你學會了為過失負責。" },
+                    { text: "趁著還書箱沒人，偷偷把書丟進去就算了。", type: "bad", consequence: "圖書館追蹤了借閱紀錄，不僅要求加倍賠償，還停權了你的借閱證半年，這件事也被記在校規裡。" },
+                    { text: "用吹風機把書吹乾，假裝沒事還回去。", type: "neutral", consequence: "書本變得皺巴巴且發霉，下一位借閱的同學向圖書館投訴。你每天都擔心被查出來，忐忑不安。" }
+                ]
+            },
+
+            // --- 主題 4：情緒覺察與控管 (emotion) ---
+            {
+                theme: 'emotion', themeName: '情緒覺察與控管', icon: '😡', title: "比賽輸了想發脾氣",
+                desc: "班際拔河比賽，因為最後一局失誤，你們班輸給了死對頭班級。你感到非常生氣和不甘心...",
+                choices: [
+                    { text: "深呼吸，告訴自己大家都很努力了，去安慰哭泣的同學。", type: "best", consequence: "你的成熟帶動了全班的氣氛，大家化悲憤為力量，決定明年再贏回來。你展現了極佳的情商。" },
+                    { text: "大發脾氣，指責排在前面的同學沒有用力。", type: "bad", consequence: "被你指責的同學大哭，班級爆發嚴重內訌。雖然比賽輸了，但失去團結的氣氛才是最大的損失。" },
+                    { text: "氣到不想講話，直接臭臉走回教室。", type: "neutral", consequence: "你的低氣壓影響了周圍的人，大家都不敢靠近你。你獨自沉浸在負面情緒中好幾天。" }
+                ]
+            },
+            {
+                theme: 'emotion', themeName: '情緒覺察與控管', icon: '🤖', title: "被弄壞的模型",
+                desc: "你花了一個月拼好的鋼彈模型，被年幼的弟弟偷偷拿去玩，摔斷了手臂。你看到後火冒三丈...",
+                choices: [
+                    { text: "先離開房間冷靜五分鐘，再請媽媽處理並限制弟弟進房。", type: "best", consequence: "避免了衝突。媽媽處罰了弟弟，並承諾買修補工具陪你一起修。你成功控制了衝動。" },
+                    { text: "直接衝過去揍弟弟一頓，大吼大叫。", type: "bad", consequence: "弟弟受傷大哭，你被父母嚴厲處罰，連原本沒壞的模型也被沒收了。暴力解決不了問題。" },
+                    { text: "自己躲在棉被裡大哭，覺得世界不公平。", type: "neutral", consequence: "你發洩了情緒，但弟弟不知道自己做錯了什麼，下次可能還會再犯。你沒有建立起自己的界線。" }
+                ]
+            },
+            {
+                theme: 'emotion', themeName: '情緒覺察與控管', icon: '💢', title: "被老師誤會",
+                desc: "上課時，旁邊的同學一直在跟你講話。老師轉頭看到，以為是你在吵鬧，當眾狠狠訓斥了你一頓...",
+                choices: [
+                    { text: "先忍住委屈，下課後去辦公室平靜地向老師解釋原委。", type: "best", consequence: "老師理解後向你道歉，並去糾正了那位同學。你學會了在適當的時機，用理性的方式替自己發聲。" },
+                    { text: "當場對老師大吼：「又不是我講的！你瞎了嗎！」", type: "bad", consequence: "老師覺得你態度惡劣，以頂撞師長將你記過。你的情緒失控讓原本有理的事情變成了無理。" },
+                    { text: "覺得很丟臉，趴在桌上哭一整節課。", type: "neutral", consequence: "你整節課都沒聽進去，同學也覺得你很玻璃心。誤會依然沒有解開，你心裡一直有疙瘩。" }
+                ]
+            },
+            {
+                theme: 'emotion', themeName: '情緒覺察與控管', icon: '😫', title: "肚子餓又大排長龍",
+                desc: "體育課後你餓壞了，衝去熱食部買午餐，卻發現隊伍排超長。前面還有人插隊，你覺得快氣炸了...",
+                choices: [
+                    { text: "告訴自己「生氣也不能變快」，聽點音樂轉移注意力。", type: "best", consequence: "你平靜地度過了等待時間，吃午餐時覺得特別美味。你成功運用了注意力轉移的自我調節技巧。" },
+                    { text: "大聲咆哮，把垃圾桶踢翻洩憤。", type: "bad", consequence: "教官立刻過來把你帶走，你不但沒買到午餐，還要寫悔過書。衝動行為讓你付出了代價。" },
+                    { text: "氣到不吃了，餓著肚子回教室。", type: "neutral", consequence: "下午的課你因為血糖過低而頭暈目眩，完全無法專心。用懲罰自己的方式生氣，並不聰明。" }
+                ]
+            },
+            {
+                theme: 'emotion', themeName: '情緒覺察與控管', icon: '🌧️', title: "期待的旅行取消",
+                desc: "期待了半年的家族旅行，在出發前一天因為強颱警報發布而被迫取消。你行李都打包好了...",
+                choices: [
+                    { text: "接受現實，和家人提議改成「在家露營」看電影吃零食。", type: "best", consequence: "雖然沒有出門，但全家度過了一個溫馨又特別的颱風夜。你展現了極高的心理彈性（Resilience）。" },
+                    { text: "對爸媽發脾氣，把自己關在房間裡摔東西。", type: "bad", consequence: "爸媽也很無奈，你的行為讓全家氣氛降到冰點。假期泡湯了，還因為摔壞東西被罵。" },
+                    { text: "整天躺在床上滑手機，什麼都不想做。", type: "neutral", consequence: "你度過了一個極度無聊且充滿失落感的週末。未能妥善處理失落情緒，讓你浪費了假期。" }
+                ]
+            },
+            {
+                theme: 'emotion', themeName: '情緒覺察與控管', icon: '😔', title: "努力被嘲笑",
+                desc: "你為了才藝表演苦練了很久的魔術，但在台上表演時還是失手了。台下傳來一陣無情的笑聲...",
+                choices: [
+                    { text: "用幽默化解：「看來我的魔法今天休假了！」然後微笑下台。", type: "best", consequence: "全場報以熱烈的掌聲，大家欣賞你的台風與高EQ。這次失敗反而成了你最亮眼的表現。" },
+                    { text: "羞憤交加，在台上哭了出來，並大罵觀眾沒品。", type: "bad", consequence: "場面變得非常難堪，影片還被傳到網路上。你從此對上台產生了嚴重的陰影。" },
+                    { text: "假裝沒事匆匆逃下台，之後幾天都不敢看同學。", type: "neutral", consequence: "你覺得自己是個失敗者，陷入自我懷疑。其實大家隔天就忘了，是你自己困住了自己。" }
+                ]
+            },
+
+            // --- 主題 5：團隊合作與溝通 (teamwork) ---
+            {
+                theme: 'teamwork', themeName: '團隊合作與溝通', icon: '🥱', title: "擺爛的組員",
+                desc: "分組報告明天就要交，負責查資料的組員卻什麼都沒做，還在群組發打遊戲的截圖...",
+                choices: [
+                    { text: "明確告知他：「如果你今晚不交出資料，我們會在報告上標註你未參與。」", type: "best", consequence: "他感受到壓力，熬夜把資料趕出來了。你運用了設立界線與結果預告的技巧，保住了團隊成績。" },
+                    { text: "認命地幫他把工作做完，不想起衝突。", type: "bad", consequence: "他把這當成習慣，下次分組照樣擺爛。你累得半死，心裡極度不平衡，這不是健康的團隊關係。" },
+                    { text: "在群組狂罵他，然後大家開始吵架。", type: "neutral", consequence: "報告最後沒人做完，全組都被當掉。情緒發洩無助於解決眼前的危機。" }
+                ]
+            },
+            {
+                theme: 'teamwork', themeName: '團隊合作與溝通', icon: '📝', title: "忘記答應的事",
+                desc: "你答應幫全班設計園遊會的海報，但因為沉迷追劇，直到前一天晚上才想起來，根本來不及畫完...",
+                choices: [
+                    { text: "立刻向班長坦承失誤，提出用 Canva 套版快速趕出一個簡化版方案。", type: "best", consequence: "雖然海報沒有預期精美，但班長感謝你的誠實與危機處理。你學會了犯錯後要立刻提出解決方案。" },
+                    { text: "隔天裝病請假，想說逃避一天是一天。", type: "bad", consequence: "班上當天沒有海報可用，生意慘淡。大家都知道你是故意躲避，你完全失去了同學的信任。" },
+                    { text: "隨便拿一張白紙用奇異筆撇幾下交差。", type: "neutral", consequence: "成品太敷衍，全班大傻眼。大家寧願你沒畫，覺得你的態度非常不負責任。" }
+                ]
+            },
+            {
+                theme: 'teamwork', themeName: '團隊合作與溝通', icon: '🧹', title: "打掃時間的誘惑",
+                desc: "外堂區打掃時間，你的好朋友提議：「反正衛生股長不在，我們偷溜去合作社買冰吃吧！」...",
+                choices: [
+                    { text: "拒絕提議：「我們趕快掃完再一起去買，不然別人要幫我們掃。」", type: "best", consequence: "朋友聽了覺得有道理，兩人迅速掃完。吃冰時覺得心安理得，展現了對團隊負責的態度。" },
+                    { text: "覺得偶爾一次沒關係，跟著偷溜去吃冰。", type: "bad", consequence: "衛生股長回來發現你們不見，害全組被留下來罰掃一週。同組的同學對你們非常不滿。" },
+                    { text: "自己留下來掃，但叫朋友幫你買一隻冰回來。", type: "neutral", consequence: "朋友被抓到了，供出你也有份。你雖然有打掃，但成了違規的共犯，依然受罰。" }
+                ]
+            },
+            {
+                theme: 'teamwork', themeName: '團隊合作與溝通', icon: '👑', title: "無人理會的幹部",
+                desc: "你被選為風紀股長，但午休時間班上很吵，你站在台上喊了幾次安靜，根本沒有人理你...",
+                choices: [
+                    { text: "改變策略，走到最吵的小團體旁，輕聲但堅定地請他們配合。", type: "best", consequence: "個別擊破的溝通方式奏效了，班上逐漸安靜下來。你學會了彈性的領導技巧，而非只會大吼。" },
+                    { text: "氣到摔黑板擦，大罵全班都是白癡。", type: "bad", consequence: "班上同學故意跟你作對，吵得更大聲。老師進來後覺得你情緒管理有問題，撤換了你的職務。" },
+                    { text: "覺得很挫折，走下台不管了，跟著一起講話。", type: "neutral", consequence: "班級秩序完全失控，你是最失職的幹部，大家也不再尊重你的任何發言。" }
+                ]
+            },
+            {
+                theme: 'teamwork', themeName: '團隊合作與溝通', icon: '🧭', title: "方向錯誤的團隊",
+                desc: "科展比賽前夕，你發現組長堅持的研究方向有一個致命錯誤，但組長平時很強勢，不喜歡被質疑...",
+                choices: [
+                    { text: "私下找組長，拿出數據證明錯誤，並提出修正的建議方向。", type: "best", consequence: "組長雖然一開始拉不下臉，但看到數據後接受了。團隊及時修正，最後拿下了好成績。你展現了勇敢建言。" },
+                    { text: "怕惹組長生氣，選擇閉嘴，想說反正錯了是組長負責。", type: "bad", consequence: "比賽當天被評審點出錯誤，全組成績墊底。你心裡後悔沒有早點說出來，團隊榮譽也受損了。" },
+                    { text: "在全組面前大肆嘲笑組長的錯誤，證明自己比較聰明。", type: "neutral", consequence: "組長惱羞成怒，把你踢出群組。雖然你是對的，但錯誤的溝通方式讓你失去了參與比賽的機會。" }
+                ]
+            },
+            {
+                theme: 'teamwork', themeName: '團隊合作與溝通', icon: '🎤', title: "上台前的怯場",
+                desc: "話劇比賽輪到你們班上場了，但飾演主角的同學突然恐慌發作，躲在後台發抖說他不敢上台...",
+                choices: [
+                    { text: "握住他的手，陪他深呼吸，並承諾在台上會一直給他眼神支援。", type: "best", consequence: "他感受到了團隊的支持，鼓起勇氣上台，順利完成了表演。你們建立起了革命情感。" },
+                    { text: "責罵他：「現在才說不敢，你想害死全班嗎！」", type: "bad", consequence: "他哭得更厲害，完全無法上台，比賽被迫棄權。你的指責成了壓垮他的最後一根稻草。" },
+                    { text: "到處跟其他同學抱怨他很雷，然後自己滑手機等老師處理。", type: "neutral", consequence: "團隊士氣崩盤。老師雖然安撫了主角，但整個班級在台上的表現猶如一盤散沙。" }
+                ]
+            }
+        ];
+
+        // 系統狀態
+        let currentGameScenarios = [];
+        let currentScenarioIndex = 0;
+        const currentYear = new Date().getFullYear();
+
+        // DOM 元素 (新增顏色控制所需元素)
+        const mainHeader = document.getElementById('main-header');
+        const gameContainer = document.getElementById('game-container');
+        const themeBadge = document.getElementById('theme-badge');
+        const scenarioCounter = document.getElementById('scenario-counter');
+        const scenarioIcon = document.getElementById('scenario-icon');
+        const scenarioTitleText = document.getElementById('scenario-title-text');
+        
+        const viewScenario = document.getElementById('view-scenario');
+        const viewConsequence = document.getElementById('view-consequence');
+        const viewFinal = document.getElementById('view-final');
+        const timeTunnel = document.getElementById('time-tunnel');
+        
+        const btnRewind = document.getElementById('btn-rewind');
+        const btnNext = document.getElementById('btn-next');
+
+        // ==========================================
+        // 2. 遊戲邏輯與畫面切換
+        // ==========================================
+
+        function initGameData() {
+            // A. 亂數抽取一個主題
+            const themes = ['digital', 'interpersonal', 'honesty', 'emotion', 'teamwork'];
+            const selectedTheme = themes[Math.floor(Math.random() * themes.length)];
+            
+            // B. 過濾出該主題的所有情境，並亂數抽取 3 個
+            const themeScenarios = allScenariosData.filter(s => s.theme === selectedTheme);
+            currentGameScenarios = themeScenarios.sort(() => Math.random() - 0.5).slice(0, 3);
+            currentScenarioIndex = 0;
+            
+            // 綁定重新開始按鈕到新邏輯
+            document.getElementById('btn-restart').onclick = () => {
+                viewFinal.classList.add('hidden');
+                viewFinal.classList.remove('flex'); // 確保結算畫面的 flex 樣式也被移除
+                mainHeader.classList.remove('hidden'); // ✨修復點：恢復顯示頂部標題
+                initGameData();
+            };
+            
+            loadScenario();
+        }
+
+        function loadScenario() {
+            if (currentScenarioIndex >= currentGameScenarios.length) {
+                showFinalView();
+                return;
+            }
+
+            const scenario = currentGameScenarios[currentScenarioIndex];
+            const style = themeStyles[scenario.theme];
+            
+            // --- 更新 UI 顏色與圖示 (正則替換確保支援各種顏色) ---
+            mainHeader.className = mainHeader.className.replace(/bg-\w+-600/, style.bg);
+            scenarioCounter.className = scenarioCounter.className.replace(/bg-\w+-800/, style.badge);
+            gameContainer.className = gameContainer.className.replace(/border-\w+-100|border-\w+-200/, style.border);
+            themeBadge.innerText = `⏱️ 主題：${scenario.themeName}`;
+            
+            scenarioIcon.innerText = scenario.icon;
+            scenarioTitleText.innerText = scenario.title;
+            
+            // 更新進度與情境描述
+            scenarioCounter.innerText = `情境 ${currentScenarioIndex + 1} / ${currentGameScenarios.length}`;
+            document.getElementById('scenario-desc').innerText = scenario.desc;
+
+            // 渲染選項 (打亂順序)
+            const choicesContainer = document.getElementById('choices-container');
+            choicesContainer.innerHTML = '';
+            const shuffledChoices = [...scenario.choices].sort(() => Math.random() - 0.5);
+
+            shuffledChoices.forEach(choice => {
+                const btn = document.createElement('button');
+                // 為了與動態標題色塊搭配，將選項 hover 顏色設為中性或淺藍
+                btn.className = 'w-full text-left bg-white hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-200 p-4 md:p-5 rounded-2xl text-gray-800 font-medium transition-all active:scale-[0.98] shadow-sm hover:shadow-md text-[15px] md:text-lg';
+                btn.innerText = choice.text;
+                btn.onclick = () => processChoice(choice);
+                choicesContainer.appendChild(btn);
+            });
+
+            // 切換視圖
+            viewConsequence.classList.add('hidden');
+            viewScenario.classList.remove('hidden');
+            
+            viewScenario.classList.remove('fade-enter');
+            void viewScenario.offsetWidth; // trigger reflow
+            viewScenario.classList.add('fade-enter');
+        }
+
+        function processChoice(choice) {
+            // 1. 啟動穿越未來的特效
+            triggerTimeTravel('future', () => {
+                
+                // 2. 準備後果畫面的內容
+                const consequenceBox = document.getElementById('consequence-box');
+                const consequenceIcon = document.getElementById('consequence-icon');
+                document.getElementById('consequence-text').innerText = choice.consequence;
+
+                // 根據選擇的好壞設定顏色與按鈕
+                if (choice.type === 'best') {
+                    consequenceBox.className = 'bg-emerald-50 p-6 rounded-2xl shadow-md border-l-8 border-emerald-500 mb-6 flex-1';
+                    consequenceIcon.innerText = '✨';
+                    btnRewind.classList.add('hidden');
+                    btnNext.classList.remove('hidden');
+                    btnNext.style.display = 'flex'; // Tailwind hidden override
+                    
+                    // 播放過關特效
+                    setTimeout(() => {
+                        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                    }, 500);
+
+                } else if (choice.type === 'bad') {
+                    consequenceBox.className = 'bg-rose-50 p-6 rounded-2xl shadow-md border-l-8 border-rose-500 mb-6 flex-1';
+                    consequenceIcon.innerText = '⛈️';
+                    btnRewind.classList.remove('hidden');
+                    btnNext.classList.add('hidden');
+                    btnNext.style.display = 'none';
+
+                } else { // neutral
+                    consequenceBox.className = 'bg-amber-50 p-6 rounded-2xl shadow-md border-l-8 border-amber-500 mb-6 flex-1';
+                    consequenceIcon.innerText = '🍂';
+                    btnRewind.classList.remove('hidden');
+                    btnNext.classList.add('hidden');
+                    btnNext.style.display = 'none';
+                }
+
+                // 切換視圖
+                viewScenario.classList.add('hidden');
+                viewConsequence.classList.remove('hidden');
+                
+                viewConsequence.classList.remove('fade-enter');
+                void viewConsequence.offsetWidth;
+                viewConsequence.classList.add('fade-enter');
+            });
+        }
+
+        function triggerRewind() {
+            // 啟動倒流過去的特效
+            triggerTimeTravel('past', () => {
+                // 回到選擇畫面
+                viewConsequence.classList.add('hidden');
+                viewScenario.classList.remove('hidden');
+                
+                viewScenario.classList.remove('fade-enter');
+                void viewScenario.offsetWidth;
+                viewScenario.classList.add('fade-enter');
+            });
+        }
+
+        function nextScenario() {
+            currentScenarioIndex++;
+            loadScenario();
+        }
+
+        // ==========================================
+        // 3. 時光穿梭特效引擎 (CSS Animation Controller)
+        // ==========================================
+        function triggerTimeTravel(direction, onComplete) {
+            const travelText = document.getElementById('travel-text');
+            const dateCounter = document.getElementById('date-counter');
+            
+            // 設定動畫類型
+            timeTunnel.className = direction === 'future' ? 'travel-future shake-screen flex' : 'travel-past shake-screen flex';
+            timeTunnel.style.display = 'flex';
+            travelText.innerText = direction === 'future' ? '時間快轉中...' : '時光倒流中...';
+
+            // 1. 計算日期 (今天與 7 天後)
+            const today = new Date();
+            const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 天後的毫秒數
+            
+            let startTime = direction === 'future' ? today.getTime() : nextWeek.getTime();
+            let endTime = direction === 'future' ? nextWeek.getTime() : today.getTime();
+
+            // 格式化日期函式 (YYYY-MM-DD)
+            const formatDate = (ms) => {
+                const d = new Date(ms);
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            };
+
+            // 2. 使用 requestAnimationFrame 製作平滑數字跳動
+            const duration = 2000; // 動畫持續時間 2 秒
+            const startAnimTime = performance.now();
+
+            function updateTime(currentTime) {
+                let elapsed = currentTime - startAnimTime;
+                let progress = Math.min(elapsed / duration, 1);
+                
+                // 根據進度計算當前的毫秒數並更新畫面
+                let currentMs = startTime + (endTime - startTime) * progress;
+                dateCounter.innerText = formatDate(currentMs);
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateTime);
+                }
+            }
+            requestAnimationFrame(updateTime);
+
+            // 3. 2.5 秒後結束特效 (預留 0.5 秒讓玩家看清楚最終停留在哪一天)
+            setTimeout(() => {
+                timeTunnel.style.display = 'none';
+                timeTunnel.className = '';
+                if(onComplete) onComplete();
+            }, 2500);
+        }
+
+        function showFinalView() {
+            mainHeader.classList.add('hidden');
+            viewScenario.classList.add('hidden');
+            viewConsequence.classList.add('hidden');
+            viewFinal.classList.remove('hidden');
+            viewFinal.classList.add('flex');
+            
+            // 慶祝特效
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+
+        // 綁定按鈕事件
+        btnRewind.onclick = triggerRewind;
+        btnNext.onclick = nextScenario;
+
+        // 啟動遊戲 (改為呼叫新的初始化邏輯)
+        window.onload = initGameData;
+
+    </script>
+</body>
+</html>
