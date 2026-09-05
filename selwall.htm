@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="陳世銘的教育AI">
+    <meta name="keywords" content="陳世銘, SEL, AI, 數位學習, sami.nibar.net, ai.at.tw, samichen@gmail.com">
+    <meta name="author" content="陳世銘">
+    <title>情感圖示配對牆 - SEL 互動遊戲</title>
+    <link rel="icon" href="https://ai.webideal.org/images/favicon.ico" type="image/x-icon" />
+    <!-- 使用 Tailwind CSS 加速 UI 開發 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Confetti 特效函式庫提供正向回饋 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        /* 錯誤時的震動動畫 */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-5deg); }
+            75% { transform: translateX(5px) rotate(5deg); }
+        }
+        .shake-animation {
+            animation: shake 0.4s ease-in-out;
+        }
+        
+        /* 拖曳時的視覺回饋 */
+        .dragging {
+            opacity: 0.5;
+            transform: scale(1.1);
+            transition: transform 0.2s;
+        }
+
+        /* 成功配對後的發光效果 */
+        .success-glow {
+            box-shadow: 0 0 15px rgba(52, 211, 153, 0.6);
+            border-color: #34d399 !important;
+            transition: all 0.3s ease;
+        }
+
+        /* 平板點擊選取時的樣式 */
+        .selected-emoji {
+            box-shadow: 0 0 0 4px #60a5fa;
+            transform: scale(1.1);
+            background-color: #dbeafe; /* Tailwind blue-100 */
+        }
+    </style>
+</head>
+<body class="bg-blue-50 min-h-screen font-sans flex flex-col items-center py-10 selection:bg-blue-200">
+
+    <!-- 標題與說明區塊 -->
+    <header class="text-center mb-8 px-4 max-w-2xl">
+        <h1 class="text-4xl font-bold text-blue-800 mb-3 drop-shadow-sm">🎭 情感圖示配對牆</h1>
+        <p class="text-lg text-gray-700 mb-2">
+            <strong>SEL 挑戰：自我意識。</strong> 試著體會不同情境下的心情變化吧！<br>
+            <span class="text-sm text-gray-500">（每次都會從 30 個情境中隨機挑選 5 題喔！）</span>
+        </p>
+        <!-- 特別針對平板用戶的操作提示 -->
+        <div class="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-sm font-semibold shadow-sm">
+            💡 操作提示：電腦請使用「拖曳」，平板請「先點選圖示，再點選左側框框」進行配對。
+        </div>
+    </header>
+
+    <!-- 遊戲主要區域 -->
+    <main class="flex flex-col md:flex-row gap-8 w-full max-w-5xl px-4">
+        
+        <!-- 左側：情境放置區 (Drop Zones) -->
+        <section class="flex-1 space-y-4" id="scenarios-container">
+            <!-- 情境項目由 JavaScript 動態生成 -->
+        </section>
+
+        <!-- 右側：情緒圖示選擇區 (Draggable / Clickable Items) -->
+        <section class="w-full md:w-1/3 bg-white p-6 rounded-2xl shadow-lg border-2 border-blue-100 flex flex-col items-center">
+            <h2 class="text-xl font-bold text-gray-700 mb-6 border-b-2 border-blue-200 pb-2 w-full text-center">選擇情緒圖示</h2>
+            <div class="flex flex-wrap gap-4 justify-center" id="emojis-container">
+                <!-- 圖示由 JavaScript 動態生成 -->
+            </div>
+            
+            <div id="game-complete-msg" class="hidden mt-8 text-center animate-bounce">
+                <p class="text-2xl font-bold text-green-600 mb-4">🎉 恭喜你完成所有配對！</p>
+                <button onclick="resetGame()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-md transition-colors">
+                    再玩一次
+                </button>
+            </div>
+        </section>
+        
+    </main>
+
+    <script>
+        // 1. 擴充至 10 種情緒與 30 個題庫 (每種情緒 3 題)
+        const fullEmojisData = [
+            { id: 'e1', emotion: "sad", emoji: "😢", label: "悲傷" },
+            { id: 'e2', emotion: "surprised", emoji: "😲", label: "驚訝/驚喜" },
+            { id: 'e3', emotion: "anxious", emoji: "😰", label: "焦慮/緊張" },
+            { id: 'e4', emotion: "angry", emoji: "😡", label: "生氣" },
+            { id: 'e5', emotion: "proud", emoji: "😄", label: "自豪/開心" },
+            { id: 'e6', emotion: "scared", emoji: "😨", label: "害怕" },
+            { id: 'e7', emotion: "jealous", emoji: "😒", label: "羨慕/嫉妒" },
+            { id: 'e8', emotion: "excited", emoji: "🤩", label: "期待/興奮" },
+            { id: 'e9', emotion: "guilty", emoji: "😔", label: "內疚/抱歉" },
+            { id: 'e10', emotion: "grateful", emoji: "🥰", label: "感恩/感謝" }
+        ];
+
+        const fullGameData = [
+            // 悲傷 (sad)
+            { id: 'q1_1', emotion: "sad", text: "期待已久的校外教學因為颱風取消了。" },
+            { id: 'q1_2', emotion: "sad", text: "我養了很久的寵物魚突然死掉了。" },
+            { id: 'q1_3', emotion: "sad", text: "好朋友轉學了，以後很難再見面。" },
+            // 驚訝/驚喜 (surprised)
+            { id: 'q2_1', emotion: "surprised", text: "同學突然在抽屜裡準備了生日驚喜給我！" },
+            { id: 'q2_2', emotion: "surprised", text: "抽獎時，竟然抽中了我最想要的頭獎！" },
+            { id: 'q2_3', emotion: "surprised", text: "原本以為忘記帶便當，結果發現媽媽悄悄塞在書包底層。" },
+            // 焦慮/緊張 (anxious)
+            { id: 'q3_1', emotion: "anxious", text: "明天要在全校同學面前上台演講，心跳好快。" },
+            { id: 'q3_2', emotion: "anxious", text: "明天要期末考了，我總覺得自己還沒準備好。" },
+            { id: 'q3_3', emotion: "anxious", text: "參加大隊接力，我是最後一棒，快要交棒給我了。" },
+            // 生氣 (angry)
+            { id: 'q4_1', emotion: "angry", text: "弟弟未經我的同意，就把我最喜歡的玩具弄壞了。" },
+            { id: 'q4_2', emotion: "angry", text: "我排隊排了很久，卻有人故意插隊。" },
+            { id: 'q4_3', emotion: "angry", text: "明明不是我做錯的事，卻被老師誤會並挨罵了。" },
+            // 自豪/開心 (proud)
+            { id: 'q5_1', emotion: "proud", text: "我終於靠自己的力量完成了一千片的拼圖。" },
+            { id: 'q5_2', emotion: "proud", text: "經過一個月的練習，我終於學會騎腳踏車了！" },
+            { id: 'q5_3', emotion: "proud", text: "我的美術作品被老師貼在公佈欄上展覽。" },
+            // 害怕 (scared)
+            { id: 'q6_1', emotion: "scared", text: "晚上突然停電，房間裡變得黑漆漆的。" },
+            { id: 'q6_2', emotion: "scared", text: "在公園遇到一隻對著我一直狂吠的大狗。" },
+            { id: 'q6_3', emotion: "scared", text: "看了一部關於鬼怪的電影，自己一個人去上廁所時。" },
+            // 羨慕/嫉妒 (jealous)
+            { id: 'q7_1', emotion: "jealous", text: "看到好朋友跟其他同學玩得很開心，我都插不上話。" },
+            { id: 'q7_2', emotion: "jealous", text: "弟弟收到了最新款的玩具，而我卻沒有。" },
+            { id: 'q7_3', emotion: "jealous", text: "班上的同學考試考了滿分，大家都圍著他稱讚。" },
+            // 期待/興奮 (excited)
+            { id: 'q8_1', emotion: "excited", text: "明天就是我們全家要去遊樂園玩的日子！" },
+            { id: 'q8_2', emotion: "excited", text: "倒數三天就要放長長的暑假了！" },
+            { id: 'q8_3', emotion: "excited", text: "知道自己喜歡的偶像即將來台灣辦演唱會。" },
+            // 內疚/抱歉 (guilty)
+            { id: 'q9_1', emotion: "guilty", text: "我不小心說了傷人的話，讓好朋友哭了。" },
+            { id: 'q9_2', emotion: "guilty", text: "我因為貪玩忘記餵小狗，害牠餓了一整天。" },
+            { id: 'q9_3', emotion: "guilty", text: "考試時我偷看了別人的答案，心裡一直覺得很不踏實。" },
+            // 感恩/感謝 (grateful)
+            { id: 'q10_1', emotion: "grateful", text: "我生病請假，同學特地幫我把筆記送到家裡。" },
+            { id: 'q10_2', emotion: "grateful", text: "爸媽每天辛苦工作，還準備豐盛的晚餐給我吃。" },
+            { id: 'q10_3', emotion: "grateful", text: "下雨天忘了帶傘，警衛伯伯借了一把愛心傘給我。" }
+        ];
+
+        let currentGameData = [];
+        let currentEmojisData = [];
+        let matchedCount = 0;
+        let selectedEmojiElement = null;
+
+        // 工具函式：陣列洗牌
+        const shuffleArray = (array) => {
+            let shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        };
+
+        // 2. 初始化遊戲介面與亂數抽題邏輯
+        function initGame() {
+            const scenariosContainer = document.getElementById('scenarios-container');
+            const emojisContainer = document.getElementById('emojis-container');
+            
+            scenariosContainer.innerHTML = '';
+            emojisContainer.innerHTML = '';
+            matchedCount = 0;
+            selectedEmojiElement = null;
+            document.getElementById('game-complete-msg').classList.add('hidden');
+
+            // --- 亂數抽題核心邏輯 ---
+            // A. 先從 10 種情緒中亂數抽出 5 種不重複的情緒
+            const selectedEmotions = shuffleArray(fullEmojisData).slice(0, 5);
+            currentEmojisData = shuffleArray(selectedEmotions); // 打亂要在右側顯示的情緒順序
+            
+            // B. 從選中的 5 種情緒中，各自抽出 1 個對應的情境題目
+            let selectedScenarios = selectedEmotions.map(emo => {
+                const scenariosForEmotion = fullGameData.filter(q => q.emotion === emo.emotion);
+                return shuffleArray(scenariosForEmotion)[0];
+            });
+            currentGameData = shuffleArray(selectedScenarios); // 打亂要在左側顯示的題目順序
+            // ------------------------
+
+            // 渲染左側情境區
+            currentGameData.forEach(item => {
+                const zone = document.createElement('div');
+                zone.className = 'bg-white p-4 rounded-xl shadow-sm border-2 border-dashed border-gray-300 flex items-center justify-between transition-colors drop-zone cursor-pointer';
+                zone.setAttribute('data-target-emotion', item.emotion);
+                zone.id = `zone-${item.id}`;
+                
+                zone.innerHTML = `
+                    <p class="text-gray-700 font-medium text-lg flex-1 pr-4 select-none pointer-events-none">${item.text}</p>
+                    <div class="w-16 h-16 rounded-lg bg-gray-100 border-2 border-gray-200 flex items-center justify-center text-3xl emoji-slot transition-all pointer-events-none">
+                        <!-- 放置區 -->
+                    </div>
+                `;
+
+                // 綁定 Drag & Drop 事件 (支援電腦)
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('dragenter', handleDragEnter);
+                zone.addEventListener('dragleave', handleDragLeave);
+                zone.addEventListener('drop', handleDrop);
+                
+                // 綁定 Click 事件 (支援平板)
+                zone.addEventListener('click', () => handleZoneClick(zone));
+
+                scenariosContainer.appendChild(zone);
+            });
+
+            // 渲染右側情緒圖示
+            currentEmojisData.forEach(item => {
+                const dragItem = document.createElement('div');
+                dragItem.className = 'flex flex-col items-center justify-center w-20 h-24 bg-blue-50 rounded-xl border border-blue-200 cursor-pointer hover:bg-blue-100 hover:shadow-md transition-all draggable-emoji';
+                dragItem.setAttribute('draggable', 'true');
+                dragItem.setAttribute('data-emotion', item.emotion);
+                dragItem.id = `emoji-${item.id}`;
+                
+                dragItem.innerHTML = `
+                    <span class="text-4xl mb-1 pointer-events-none">${item.emoji}</span>
+                    <span class="text-xs text-gray-500 font-medium pointer-events-none text-center leading-tight">${item.label}</span>
+                `;
+
+                // 綁定 Drag 事件 (支援電腦)
+                dragItem.addEventListener('dragstart', handleDragStart);
+                dragItem.addEventListener('dragend', handleDragEnd);
+                
+                // 綁定 Click 事件 (支援平板)
+                dragItem.addEventListener('click', () => handleEmojiClick(dragItem));
+
+                emojisContainer.appendChild(dragItem);
+            });
+        }
+
+        // ==========================================
+        // 核心配對邏輯 (共用於拖放與點擊模式)
+        // ==========================================
+        function processMatch(dropZone, draggedElement) {
+            if (dropZone.classList.contains('matched')) return;
+
+            const targetEmotion = dropZone.getAttribute('data-target-emotion');
+            const draggedEmotion = draggedElement.getAttribute('data-emotion');
+            const slot = dropZone.querySelector('.emoji-slot');
+
+            // 移除可能存在的 hover 狀態樣式
+            slot.classList.remove('bg-blue-100', 'border-blue-400', 'scale-110');
+
+            if (targetEmotion === draggedEmotion) {
+                // ✅ 配對成功
+                slot.innerHTML = draggedElement.querySelector('span').innerText;
+                slot.classList.replace('bg-gray-100', 'bg-green-100');
+                slot.classList.replace('border-gray-200', 'border-green-400');
+                
+                dropZone.classList.add('matched', 'success-glow');
+                dropZone.classList.remove('border-dashed', 'border-gray-300', 'cursor-pointer');
+                dropZone.classList.add('border-solid', 'border-green-400', 'bg-green-50');
+                
+                // 隱藏右側已使用的圖示
+                draggedElement.style.visibility = 'hidden';
+                draggedElement.setAttribute('draggable', 'false');
+
+                // 清除平板點擊的選取狀態
+                clearEmojiSelection();
+
+                // 播放特效
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.8 },
+                    colors: ['#34d399', '#60a5fa', '#fbbf24']
+                });
+
+                matchedCount++;
+                checkGameComplete();
+            } else {
+                // ❌ 配對失敗
+                slot.classList.add('bg-red-100', 'border-red-400');
+                dropZone.classList.add('shake-animation');
+                
+                // 移除失敗動畫以便下次嘗試
+                setTimeout(() => {
+                    dropZone.classList.remove('shake-animation');
+                    slot.classList.remove('bg-red-100', 'border-red-400');
+                }, 400);
+            }
+        }
+
+
+        // ==========================================
+        // 觸控平板模式：點擊事件處理
+        // ==========================================
+        function handleEmojiClick(element) {
+            // 如果該圖示已經被隱藏（已配對成功），則不動作
+            if(element.style.visibility === 'hidden') return;
+
+            // 切換選取狀態
+            if (selectedEmojiElement === element) {
+                clearEmojiSelection();
+            } else {
+                clearEmojiSelection();
+                selectedEmojiElement = element;
+                element.classList.add('selected-emoji');
+            }
+        }
+
+        function handleZoneClick(zone) {
+            // 如果沒有先選取圖示，或該區域已配對完成，則不動作
+            if (!selectedEmojiElement || zone.classList.contains('matched')) return;
+            
+            // 執行配對檢查
+            processMatch(zone, selectedEmojiElement);
+        }
+
+        function clearEmojiSelection() {
+            if (selectedEmojiElement) {
+                selectedEmojiElement.classList.remove('selected-emoji');
+                selectedEmojiElement = null;
+            }
+        }
+
+
+        // ==========================================
+        // 桌機模式：拖放事件處理
+        // ==========================================
+        function handleDragStart(e) {
+            // 開始拖曳時，先清除平板模式的選取狀態避免視覺混淆
+            clearEmojiSelection();
+            e.dataTransfer.setData('elementId', e.target.id);
+            setTimeout(() => e.target.classList.add('opacity-50', 'scale-95'), 0);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('opacity-50', 'scale-95');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault(); 
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            const slot = e.currentTarget.querySelector('.emoji-slot');
+            if (slot && !e.currentTarget.classList.contains('matched')) {
+                slot.classList.add('bg-blue-100', 'border-blue-400', 'scale-110');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const slot = e.currentTarget.querySelector('.emoji-slot');
+            if (slot && !e.currentTarget.classList.contains('matched')) {
+                slot.classList.remove('bg-blue-100', 'border-blue-400', 'scale-110');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropZone = e.currentTarget;
+            if (dropZone.classList.contains('matched')) return;
+
+            const draggedElementId = e.dataTransfer.getData('elementId');
+            const draggedElement = document.getElementById(draggedElementId);
+            
+            if(draggedElement) {
+                processMatch(dropZone, draggedElement);
+            }
+        }
+
+        // ==========================================
+        // 遊戲狀態與重置
+        // ==========================================
+        function checkGameComplete() {
+            if (matchedCount === currentGameData.length) {
+                document.getElementById('game-complete-msg').classList.remove('hidden');
+                
+                const duration = 3000;
+                const end = Date.now() + duration;
+
+                (function frame() {
+                    confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#34d399', '#60a5fa', '#fbbf24'] });
+                    confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#34d399', '#60a5fa', '#fbbf24'] });
+                    if (Date.now() < end) requestAnimationFrame(frame);
+                }());
+            }
+        }
+
+        function resetGame() {
+            initGame();
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
