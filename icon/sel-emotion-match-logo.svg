@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <!-- 背景未配對磁磚 (Unmatched Tiles - 象徵等待探索的情緒牆面) -->
+  <!-- 右上角：平靜/中立情緒 -->
+  <rect x="66" y="14" width="40" height="40" rx="10" fill="none" stroke="#A8DADC" stroke-width="4" stroke-dasharray="6 6" />
+  <path d="M 78 34 Q 86 34 94 34" fill="none" stroke="#A8DADC" stroke-width="4" stroke-linecap="round"/> 
+  <!-- 左下角：驚訝/好奇情緒 -->
+  <rect x="14" y="66" width="40" height="40" rx="10" fill="none" stroke="#A8DADC" stroke-width="4" stroke-dasharray="6 6" />
+  <circle cx="34" cy="86" r="6" fill="none" stroke="#A8DADC" stroke-width="4" />
+
+  <!-- 已成功配對的情緒磁磚 (Matched Emotion Tiles) -->
+  <!-- 左上角：喜悅與覺察 (Joy) -->
+  <rect x="14" y="14" width="40" height="40" rx="10" fill="#F4A261" />
+  <circle cx="26" cy="26" r="3.5" fill="#FFFFFF" />
+  <circle cx="42" cy="26" r="3.5" fill="#FFFFFF" />
+  <path d="M 26 36 Q 34 44 42 36" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" />
+  
+  <!-- 右下角：同理與接納 (Empathy/Love) -->
+  <rect x="66" y="66" width="40" height="40" rx="10" fill="#E63946" />
+  <path d="M 86 94 C 86 94, 73 82, 73 75 A 6.5 6.5 0 0 1 86 72 A 6.5 6.5 0 0 1 99 75 C 99 82, 86 94, 86 94 Z" fill="#FFFFFF" />
+
+  <!-- 互動配對成功的視覺回饋 (Matching Success Feedback) -->
+  <!-- 發光漣漪 (共鳴) -->
+  <circle cx="60" cy="60" r="16" fill="#E9C46A" opacity="0.25" />
+  <!-- 對角線連結 (產生連結) -->
+  <line x1="48" y1="48" x2="72" y2="72" stroke="#E9C46A" stroke-width="4" stroke-linecap="round" />
+  <!-- 魔法星芒 (正向增強) -->
+  <path d="M 60 44 Q 60 60 44 60 Q 60 60 60 76 Q 60 60 76 60 Q 60 60 60 44 Z" fill="#F4A261" />
+  <circle cx="60" cy="60" r="3" fill="#FFFFFF" />
+</svg>

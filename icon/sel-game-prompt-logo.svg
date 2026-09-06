@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <!-- 1. AI 生成星芒 (Generation Sparks - 象徵靈感、創意與 AI 的輔助) -->
+  <path d="M 100 20 Q 105 20 105 15 Q 105 20 110 20 Q 105 20 105 25 Q 105 20 100 20 Z" fill="#F4A261" />
+  <path d="M 20 25 Q 24 25 24 21 Q 24 25 28 25 Q 24 25 24 29 Q 24 25 20 25 Z" fill="#E9C46A" />
+  <path d="M 95 95 Q 98 95 98 92 Q 98 95 101 95 Q 98 95 98 98 Q 98 95 95 95 Z" fill="#A8DADC" />
+
+  <!-- 2. 主體對話框 (Prompt Bubble - 象徵提示詞、語言交流與表達) -->
+  <path d="M 15 50 C 15 15, 105 15, 105 50 C 105 85, 80 95, 60 95 L 35 110 L 35 95 C 20 90, 15 70, 15 50 Z" 
+        fill="#457B9D" />
+
+  <!-- 3. SEL 情緒紅暈 (Blush - 為科技圖示注入「情感與溫度」，呼應社會情緒學習) -->
+  <circle cx="32" cy="62" r="8" fill="#E63946" opacity="0.35" />
+  <circle cx="88" cy="62" r="8" fill="#E63946" opacity="0.35" />
+
+  <!-- 4. 互動遊戲介面 / 擬人化表情 (Game Controller Face - 結合按鍵與微笑) -->
+  <!-- 左側：十字鍵 (D-Pad) 轉化為俏皮的左眼 -->
+  <rect x="36" y="37" width="8" height="18" fill="#F1FAEE" rx="2" />
+  <rect x="31" y="42" width="18" height="8" fill="#F1FAEE" rx="2" />
+  
+  <!-- 右側：動作鍵 (Action Buttons) 轉化為充滿活力的右眼 -->
+  <circle cx="80" cy="38" r="4.5" fill="#E63946" />
+  <circle cx="88" cy="46" r="4.5" fill="#F4A261" />
+  <circle cx="72" cy="46" r="4.5" fill="#2A9D8F" />
+  <circle cx="80" cy="54" r="4.5" fill="#E9C46A" />
+
+  <!-- 底部：微笑弧線 (Smile - 象徵正向情緒、同理心與安全的互動環境) -->
+  <path d="M 42 68 Q 60 82 78 68" fill="none" stroke="#F1FAEE" stroke-width="5" stroke-linecap="round" />
+</svg>

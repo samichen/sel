@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <!-- 1. 善意擴散波紋 (Kindness Ripples - 象徵連鎖反應的起始與能量擴張) -->
+  <circle cx="25" cy="60" r="30" fill="none" stroke="#F4A261" stroke-width="3" opacity="0.4" />
+  <circle cx="25" cy="60" r="55" fill="none" stroke="#F4A261" stroke-width="2" stroke-dasharray="6 6" opacity="0.25" />
+  <circle cx="25" cy="60" r="80" fill="none" stroke="#F4A261" stroke-width="1.5" stroke-dasharray="4 8" opacity="0.15" />
+
+  <!-- 2. 人際連結網路線 (Social Network Links - 象徵友誼的牽絆與傳遞路徑) -->
+  <path d="M 25 60 L 65 25 L 105 60 L 65 95 Z" fill="none" stroke="#A8DADC" stroke-width="6" stroke-linejoin="round" />
+  <line x1="25" y1="60" x2="105" y2="60" stroke="#A8DADC" stroke-width="6" />
+
+  <!-- 3. 動態傳遞粒子 (Reaction Sparks - 正在發生的正向互動) -->
+  <circle cx="45" cy="42.5" r="4" fill="#E9C46A" />
+  <circle cx="85" cy="42.5" r="4" fill="#E9C46A" />
+  <circle cx="45" cy="77.5" r="4" fill="#E9C46A" />
+  <circle cx="65" cy="60" r="4" fill="#E9C46A" />
+
+  <!-- 4. 人際互動節點 (Social Nodes - 象徵每一個參與互動的學生/個體) -->
+  <!-- 節點 A：連鎖反應的發起者 (Catalyst) -->
+  <circle cx="25" cy="60" r="15" fill="#E63946" />
+  <path d="M 18 62 Q 25 71 32 62" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" />
+
+  <!-- 節點 B：善意的第一接收者 (Receiver 1) -->
+  <circle cx="65" cy="25" r="12" fill="#F4A261" />
+  <path d="M 60 26 Q 65 33 70 26" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" />
+
+  <!-- 節點 C：善意的第二接收者 (Receiver 2) -->
+  <circle cx="65" cy="95" r="12" fill="#E9C46A" />
+  <path d="M 60 96 Q 65 103 70 96" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" />
+
+  <!-- 節點 D：友誼圈的擴大與穩定 (The Expanded Circle) -->
+  <circle cx="105" cy="60" r="12" fill="#2A9D8F" />
+  <path d="M 100 61 Q 105 68 110 61" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" />
+</svg>

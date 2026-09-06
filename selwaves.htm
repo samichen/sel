@@ -7,7 +7,7 @@
     <meta name="keywords" content="陳世銘, SEL, AI, 數位學習, sami.nibar.net, ai.at.tw, samichen@gmail.com">
     <meta name="author" content="陳世銘">
     <title>正念呼吸波浪 - 平板感測互動版</title>
-    <link rel="icon" href="https://ai.webideal.org/images/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="icon/sel-mindful-wave-logo.svg" type="image/x-icon" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* 隱藏預設滾動條，確保平板全螢幕體驗 */
@@ -43,7 +43,28 @@
             0% { transform: scale(1); opacity: 0.8; }
             100% { transform: scale(2.5); opacity: 0; }
         }
-    </style>
+.site-copy{
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #17324D;
+  line-height: 1.6;
+}
+
+.site-copy a{
+  color: #0B2533;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+}
+
+.site-copy a:hover,
+.site-copy a:focus-visible{
+  color: #000000;
+  background-color: rgba(255,255,255,.35);
+}    </style>
 </head>
 <body class="bg-gradient-animate bg-exhale min-h-screen flex flex-col items-center justify-between text-white font-sans overflow-hidden selection:bg-transparent">
 
@@ -75,6 +96,9 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
             啟用腹式呼吸感測 (iPad)
         </button>
+    </footer>
+    <footer class="site-footer">
+      <p class="site-copy">&copy; 2026 <a href="https://sami.nibar.net" target="SaMi" rel="noopener">Dr.SaMi</a>｜SEL融入領域學科之理論與實務</p>
     </footer>
 
     <script>

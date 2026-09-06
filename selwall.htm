@@ -7,7 +7,7 @@
     <meta name="keywords" content="陳世銘, SEL, AI, 數位學習, sami.nibar.net, ai.at.tw, samichen@gmail.com">
     <meta name="author" content="陳世銘">
     <title>情感圖示配對牆 - SEL 互動遊戲</title>
-    <link rel="icon" href="https://ai.webideal.org/images/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="icon/sel-emotion-match-logo.svg" type="image/x-icon" />
     <!-- 使用 Tailwind CSS 加速 UI 開發 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Confetti 特效函式庫提供正向回饋 -->
@@ -43,6 +43,8 @@
             transform: scale(1.1);
             background-color: #dbeafe; /* Tailwind blue-100 */
         }
+    .site-copy{ margin:2px 0 0; text-align:center; font-size:11px; color:#555555; line-height:1.5; }
+    .site-copy a{ color:#2A9D8F; font-weight:800; text-decoration:none; }
     </style>
 </head>
 <body class="bg-blue-50 min-h-screen font-sans flex flex-col items-center py-10 selection:bg-blue-200">
@@ -84,6 +86,9 @@
         </section>
         
     </main>
+    <footer class="site-footer">
+      <p class="site-copy">&copy; 2026 <a href="https://sami.nibar.net" target="SaMi" rel="noopener">Dr.SaMi</a>｜SEL融入領域學科之理論與實務</p>
+    </footer>
 
     <script>
         // 1. 擴充至 10 種情緒與 30 個題庫 (每種情緒 3 題)

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <!-- 1. 時光機運轉軌跡 (Time Machine Dial - 象徵時間的推移與穿越) -->
+  <circle cx="60" cy="60" r="50" fill="none" stroke="#1D3557" stroke-width="4" stroke-dasharray="2 8" opacity="0.6"/>
+  <circle cx="60" cy="60" r="42" fill="none" stroke="#457B9D" stroke-width="2" opacity="0.3"/>
+  
+  <!-- 時間推進的金色指針與光弧 -->
+  <path d="M 60 18 A 42 42 0 0 1 102 60" fill="none" stroke="#E9C46A" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+  <!-- 指針箭頭 -->
+  <polygon points="98,54 106,54 102,62" fill="#E9C46A" />
+
+  <!-- 2. 決定分歧點 (Decision Crossroads - 象徵當下的抉擇) -->
+  <!-- 起點 (當下的你) -->
+  <circle cx="22" cy="60" r="6" fill="#E63946" />
+  <circle cx="22" cy="60" r="2" fill="#FFFFFF" />
+  
+  <!-- 走向分歧點的路徑 -->
+  <line x1="28" y1="60" x2="42" y2="60" stroke="#457B9D" stroke-width="6" stroke-linecap="round" />
+  <!-- 中繼思考節點 (抉擇瞬間的停留) -->
+  <circle cx="45" cy="60" r="8" fill="#457B9D" />
+  <circle cx="45" cy="60" r="3" fill="#FFFFFF" />
+
+  <!-- 3. 後果發展路線與情緒 (Consequences & SEL Emotions) -->
+  <!-- 路線 A (向上：充滿活力的行動或正向後果) -->
+  <path d="M 45 60 C 55 60, 60 35, 75 35" fill="none" stroke="#F4A261" stroke-width="6" stroke-linecap="round" />
+  <circle cx="82" cy="35" r="12" fill="#F4A261" />
+  <!-- 後果 A 表情：喜悅與連結的微笑 -->
+  <path d="M 77 34 Q 82 42 87 34" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" />
+
+  <!-- 路線 B (向下：需要沉澱、反思或不同的後果) -->
+  <path d="M 45 60 C 55 60, 60 85, 75 85" fill="none" stroke="#2A9D8F" stroke-width="6" stroke-linecap="round" stroke-dasharray="8 5" />
+  <circle cx="82" cy="85" r="12" fill="#2A9D8F" />
+  <!-- 後果 B 表情：平靜與覺察的呼吸波浪 -->
+  <path d="M 76 85 Q 79 81 82 85 T 88 85" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" />
+
+  <!-- 4. 時空魔法星芒 (Time Spark - 點綴互動遊戲的科技感) -->
+  <path d="M 60 27 Q 62 27 62 25 Q 62 27 64 27 Q 62 27 62 29 Q 62 27 60 27 Z" fill="#F4A261" />
+</svg>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="陳世銘的教育AI">
+  <meta name="keywords" content="陳世銘, SEL, AI, 數位學習, 數位素養, sami.nibar.net, samichen@gmail.com">
+  <meta name="author" content="陳世銘">
+  <title>SEL 教學功能卡牌傳送門</title>
+  <link rel="icon" href="icon/sel-game-prompt-logo.svg" type="image/svg+xml" sizes="any">
+  <style>
+    :root {
+      --ink: #253a38;
+      --muted: #667b77;
+      --paper: rgba(255, 255, 255, 0.76);
+      --line: rgba(255, 255, 255, 0.9);
+      --shadow: 0 18px 42px rgba(67, 91, 84, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--ink);
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 8% 12%, rgba(255, 210, 189, 0.78) 0, transparent 30%),
+        radial-gradient(circle at 91% 18%, rgba(196, 226, 215, 0.86) 0, transparent 32%),
+        radial-gradient(circle at 72% 92%, rgba(225, 207, 239, 0.72) 0, transparent 31%),
+        linear-gradient(145deg, #fff9f2 0%, #f7fbf7 48%, #fff6ee 100%);
+    }
+
+    body::before,
+    body::after {
+      position: fixed;
+      z-index: -1;
+      width: 23rem;
+      height: 23rem;
+      border-radius: 50%;
+      content: "";
+      filter: blur(3px);
+      opacity: 0.42;
+      pointer-events: none;
+    }
+
+    body::before {
+      top: -9rem;
+      right: -7rem;
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+    }
+
+    body::after {
+      bottom: -12rem;
+      left: -7rem;
+      background: rgba(255, 226, 199, 0.58);
+    }
+
+    .page-shell {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: clamp(48px, 7vw, 88px) 0 30px;
+    }
+
+    .hero {
+      max-width: 760px;
+      margin: 0 auto clamp(34px, 5vw, 54px);
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px;
+      padding: 8px 14px;
+      border: 1px solid rgba(72, 120, 110, 0.16);
+      border-radius: 999px;
+      color: #47756d;
+      background: rgba(255, 255, 255, 0.62);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.13em;
+      box-shadow: 0 8px 24px rgba(77, 107, 99, 0.07);
+      backdrop-filter: blur(12px);
+    }
+
+    .eyebrow::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #6fb2a4;
+      box-shadow: 0 0 0 5px rgba(111, 178, 164, 0.13);
+      content: "";
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(32px, 5vw, 58px);
+      line-height: 1.18;
+      letter-spacing: -0.045em;
+      text-wrap: balance;
+    }
+
+    .hero p:last-child {
+      max-width: 620px;
+      margin: 18px auto 0;
+      color: var(--muted);
+      font-size: clamp(16px, 2vw, 19px);
+      line-height: 1.8;
+      letter-spacing: 0.02em;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 22px;
+    }
+
+    .tool-card {
+      --accent: #e88968;
+      --accent-soft: #fff0e9;
+      position: relative;
+      display: flex;
+      min-height: 280px;
+      flex-direction: column;
+      align-items: flex-start;
+      isolation: isolate;
+      overflow: hidden;
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      color: inherit;
+      background: var(--paper);
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      text-decoration: none;
+      backdrop-filter: blur(18px);
+      transform: translateY(0) scale(1);
+      transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+    }
+
+    .tool-card::before {
+      position: absolute;
+      z-index: -1;
+      top: -72px;
+      right: -58px;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      content: "";
+      transition: transform 260ms ease, opacity 260ms ease;
+    }
+
+    .tool-card:hover {
+      z-index: 2;
+      border-color: color-mix(in srgb, var(--accent) 32%, white);
+      box-shadow:
+        0 24px 55px rgba(52, 76, 70, 0.18),
+        0 0 0 4px color-mix(in srgb, var(--accent) 8%, transparent),
+        0 0 34px color-mix(in srgb, var(--accent) 18%, transparent);
+      transform: translateY(-7px) scale(1.025);
+    }
+
+    .tool-card:hover::before { transform: scale(1.18); }
+
+    .tool-card:focus-visible {
+      outline: 4px solid color-mix(in srgb, var(--accent) 36%, transparent);
+      outline-offset: 5px;
+      transform: translateY(-4px);
+    }
+
+    .tool-card:nth-child(2) { --accent: #d69c3e; --accent-soft: #fff4d8; }
+    .tool-card:nth-child(3) { --accent: #4a9c91; --accent-soft: #dff4ef; }
+    .tool-card:nth-child(4) { --accent: #8a75ba; --accent-soft: #eee8fb; }
+    .tool-card:nth-child(5) { --accent: #df7186; --accent-soft: #fde8ed; }
+    .tool-card:nth-child(6) { --accent: #5b87bd; --accent-soft: #e4eefb; }
+
+    .icon-wrap {
+      display: grid;
+      width: 72px;
+      height: 72px;
+      place-items: center;
+      margin-bottom: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 22px;
+      background: var(--accent-soft);
+      font-size: 39px;
+      line-height: 1;
+      box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 17%, transparent);
+      transition: transform 220ms ease;
+    }
+
+    .tool-card:hover .icon-wrap { transform: rotate(-4deg) scale(1.06); }
+
+    .tool-card h2 {
+      margin: 0 0 10px;
+      font-size: 23px;
+      line-height: 1.35;
+      letter-spacing: -0.025em;
+    }
+
+    .tool-card p {
+      margin: 0 0 26px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .open-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: auto;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+    }
+
+    .arrow {
+      display: inline-grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      transition: transform 220ms ease;
+    }
+
+    .tool-card:hover .arrow { transform: translateX(5px); }
+
+    .site-footer {
+      margin-top: clamp(32px, 5vw, 54px);
+      text-align: center;
+    }
+
+    .footer-note {
+      margin: 0 0 8px;
+      color: #7a8c88;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+    }
+
+    .site-copy{ margin:2px 0 0; text-align:center; font-size:11px; color:#555555; line-height:1.5; }
+    .site-copy a{ color:#2A9D8F; font-weight:800; text-decoration:none; }
+
+    @media (max-width: 900px) {
+      .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 620px) {
+      .page-shell { width: min(100% - 28px, 1180px); padding-top: 38px; }
+      .hero { margin-bottom: 30px; }
+      .card-grid { grid-template-columns: 1fr; gap: 16px; }
+      .tool-card { min-height: 230px; padding: 24px; border-radius: 23px; }
+      .icon-wrap { width: 64px; height: 64px; margin-bottom: 22px; font-size: 34px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <header class="hero">
+      <p class="eyebrow">SOCIAL · EMOTIONAL · LEARNING</p>
+      <h1>SEL 教學功能卡牌傳送門</h1>
+      <p>從覺察情緒到練習選擇，選一張卡牌，開啟今天的社會情緒學習旅程。</p>
+    </header>
+
+    <nav class="card-grid" aria-label="SEL 教學工具">
+      <a class="tool-card" href="selwall.htm" target="_sel" aria-label="開啟情感圖示配對牆">
+        <span class="icon-wrap" aria-hidden="true">🎭</span>
+        <h2>情感圖示配對牆</h2>
+        <p>看懂表情、連結感受，在配對遊戲中擴充情緒詞彙。</p>
+        <span class="open-label">進入活動 <span class="arrow" aria-hidden="true">→</span></span>
+      </a>
+
+      <a class="tool-card" href="debugThermometer.htm" target="_sel" aria-label="開啟除錯溫度計">
+        <span class="icon-wrap" aria-hidden="true">🌡️</span>
+        <h2>除錯溫度計</h2>
+        <p>辨識情緒強度與變化，找到讓自己慢慢降溫的好方法。</p>
+        <span class="open-label">進入活動 <span class="arrow" aria-hidden="true">→</span></span>
+      </a>
+
+      <a class="tool-card" href="selwaves.htm" target="_sel" aria-label="開啟正念呼吸波浪">
+        <span class="icon-wrap" aria-hidden="true">🌊</span>
+        <h2>正念呼吸波浪</h2>
+        <p>跟著柔和節奏吸氣與吐氣，讓身體和思緒回到平靜。</p>
+        <span class="open-label">進入活動 <span class="arrow" aria-hidden="true">→</span></span>
+      </a>
+
+      <a class="tool-card" href="chatroom.htm" target="_sel" aria-label="開啟換位思考聊天室">
+        <span class="icon-wrap" aria-hidden="true">💬</span>
+        <h2>換位思考聊天室</h2>
+        <p>走進不同角色的視角，練習理解、傾聽與同理回應。</p>
+        <span class="open-label">進入活動 <span class="arrow" aria-hidden="true">→</span></span>
+      </a>
+
+      <a class="tool-card" href="friendship.htm" target="_sel" aria-label="開啟友誼連鎖反應">
+        <span class="icon-wrap" aria-hidden="true">🤝</span>
+        <h2>友誼連鎖反應</h2>
+        <p>探索一句話、一個行動，如何為人際關係帶來正向改變。</p>
+        <span class="open-label">進入活動 <span class="arrow" aria-hidden="true">→</span></span>
+      </a>
+
+      <a class="tool-card" href="timemachine.htm" target="_sel" aria-label="開啟決定後果時光機">
+        <span class="icon-wrap" aria-hidden="true">⏳</span>
+        <h2>決定後果時光機</h2>
+        <p>預想選擇可能帶來的結果，練習做出更負責任的決定。</p>
+        <span class="open-label">進入活動 <span class="arrow" aria-hidden="true">→</span></span>
+      </a>
+    </nav>
+
+    <footer class="site-footer">
+      <p class="footer-note">選擇一項工具，開始今天的 SEL 練習</p>
+      <p class="site-copy">&copy; 2026 <a href="https://sami.nibar.net" target="SaMi" rel="noopener">Dr.SaMi</a>｜SEL融入領域學科之理論與實務</p>
+    </footer>
+  </main>
+</body>
+</html>
